@@ -1,45 +1,33 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState } from 'react';
+import BootSplash from 'react-native-bootsplash';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import SplashScreen from './src/screens/SplashScreen';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
 
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
+  useEffect(() => {
+    // const timer = setTimeout(() => {
+    //   setShowSplash(false);
+    // }, 3000);
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+    // return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    BootSplash.hide({ fade: true });
+  }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
 
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <SplashScreen />
+    // Your actual application
+    // NavigationContainer, etc.
+    // null
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+};
 
 export default App;
