@@ -10,7 +10,10 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-vector-icons/ionicons": "^13.1.4",
     "@react-native/new-app-screen": "0.87.1",
+    "i": "^0.3.7",
+    "npm": "^11.19.1",
     "react": "19.2.3",
     "react-native": "0.87.1",
     "react-native-bootsplash": "^7.3.2",

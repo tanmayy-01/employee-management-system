@@ -1,32 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import BootSplash from 'react-native-bootsplash';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import SplashScreen from './src/screens/SplashScreen';
+import { AuthProvider } from './src/context/AuthContext';
+import { RootNavigator } from './src/navigation';
 
-const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    // const timer = setTimeout(() => {
-    //   setShowSplash(false);
-    // }, 3000);
-
-    // return () => clearTimeout(timer);
-  }, []);
-
+const App: React.FC = () => {
   useEffect(() => {
     BootSplash.hide({ fade: true });
   }, []);
 
-  if (showSplash) {
-    return <SplashScreen />;
-  }
-
   return (
-    <SplashScreen />
-    // Your actual application
-    // NavigationContainer, etc.
-    // null
+    <SafeAreaProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 };
 
