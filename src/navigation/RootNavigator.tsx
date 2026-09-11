@@ -17,6 +17,7 @@ import {
   AttendanceScreen,
 } from '../screens';
 
+
 export const RootNavigator: React.FC = () => {
   const { currentScreen, navigate } = useAuth();
   const { colors } = useTheme();

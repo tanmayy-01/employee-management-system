@@ -1,1 +1,3 @@
-export { AttendanceScreen as default } from './AttendanceScreen';
+import AttendanceScreen from "./AttendanceScreen"
+
+export { AttendanceScreen }
