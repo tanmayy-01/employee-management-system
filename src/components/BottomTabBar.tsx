@@ -4,6 +4,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { ScreenName } from '../types';
+import { TABS } from '../constants/auth.constants';
 
 export interface TabItem {
   key: ScreenName;
@@ -11,33 +12,6 @@ export interface TabItem {
   iconName: string;
   activeIconName: string;
 }
-
-const TABS: TabItem[] = [
-  {
-    key: 'Dashboard',
-    label: 'Dashboard',
-    iconName: 'grid-outline',
-    activeIconName: 'grid',
-  },
-  {
-    key: 'Attendance',
-    label: 'Attendance',
-    iconName: 'calendar-outline',
-    activeIconName: 'calendar',
-  },
-  {
-    key: 'Profile',
-    label: 'Profile',
-    iconName: 'person-outline',
-    activeIconName: 'person',
-  },
-  {
-    key: 'Settings',
-    label: 'Settings',
-    iconName: 'settings-outline',
-    activeIconName: 'settings',
-  },
-];
 
 interface BottomTabBarProps {
   activeTab?: ScreenName;
