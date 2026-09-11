@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Animated } from 'react-native';
+import { StyleSheet, Animated, BackHandler, ToastAndroid, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import {
@@ -19,9 +19,10 @@ import {
 
 
 export const RootNavigator: React.FC = () => {
-  const { currentScreen, navigate } = useAuth();
+  const { currentScreen, navigate, goBack } = useAuth();
   const { colors } = useTheme();
   const screenFadeAnim = useRef(new Animated.Value(1)).current;
+  const lastBackPressTime = useRef<number>(0);
 
   // Fade transition on screen change
   useEffect(() => {
@@ -32,6 +33,43 @@ export const RootNavigator: React.FC = () => {
       useNativeDriver: true,
     }).start();
   }, [currentScreen, screenFadeAnim]);
+
+  // Handle hardware / physical back press on Android
+  useEffect(() => {
+    const handleHardwareBackPress = () => {
+      // 1. Splash screen: prevent back navigation during loading
+      if (currentScreen === 'Splash') {
+        return true;
+      }
+
+      // 2. Root screens (Login or Dashboard / Home): Double press to exit app
+      if (currentScreen === 'Login' || currentScreen === 'Dashboard' || currentScreen === 'Home') {
+        const now = Date.now();
+        if (now - lastBackPressTime.current < 2000) {
+          BackHandler.exitApp();
+          return true;
+        }
+        lastBackPressTime.current = now;
+        if (Platform.OS === 'android') {
+          ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+        }
+        return true;
+      }
+
+      // 3. Sub-screens: navigate back to previous screen
+      goBack();
+      return true;
+    };
+
+    const backSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleHardwareBackPress
+    );
+
+    return () => {
+      backSubscription.remove();
+    };
+  }, [currentScreen, goBack]);
 
   const renderCurrentScreen = () => {
     switch (currentScreen) {

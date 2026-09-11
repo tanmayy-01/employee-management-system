@@ -13,14 +13,56 @@ const DEMO_USER: User = {
   avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
 };
 
+const DEFAULT_PREVIOUS_SCREEN: Record<ScreenName, ScreenName | null> = {
+  Splash: null,
+  Login: null,
+  Home: null,
+  Dashboard: null,
+  SignUp: 'Login',
+  ForgotPassword: 'Login',
+  OtpVerification: 'ForgotPassword',
+  ResetPassword: 'Login',
+  Attendance: 'Dashboard',
+  Profile: 'Dashboard',
+  Settings: 'Dashboard',
+  Notifications: 'Dashboard',
+  EditProfile: 'Profile',
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Splash');
+  const [screenHistory, setScreenHistory] = useState<ScreenName[]>([]);
 
   const navigate = (screen: ScreenName) => {
+    if (screen === currentScreen) return;
+    if (screen === 'Login' || screen === 'Dashboard' || screen === 'Home' || screen === 'Splash') {
+      setScreenHistory([]);
+    } else {
+      setScreenHistory(prev => [...prev, currentScreen]);
+    }
     setCurrentScreen(screen);
   };
+
+  const goBack = () => {
+    if (screenHistory.length > 0) {
+      const nextHistory = [...screenHistory];
+      const prevScreen = nextHistory.pop();
+      setScreenHistory(nextHistory);
+      if (prevScreen) {
+        setCurrentScreen(prevScreen);
+        return;
+      }
+    }
+
+    const fallback = DEFAULT_PREVIOUS_SCREEN[currentScreen];
+    if (fallback) {
+      setCurrentScreen(fallback);
+    }
+  };
+
+  const canGoBack = screenHistory.length > 0 || DEFAULT_PREVIOUS_SCREEN[currentScreen] !== null;
 
   const login = async (email: string, _password: string): Promise<boolean> => {
     setIsLoading(true);
@@ -35,6 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       setUser(loggedUser);
+      setScreenHistory([]);
       setCurrentScreen('Dashboard');
       return true;
     } catch {
@@ -46,6 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     setUser(null);
+    setScreenHistory([]);
     setCurrentScreen('Login');
   };
 
@@ -57,6 +101,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         currentScreen,
         navigate,
+        goBack,
+        canGoBack,
         login,
         logout,
       }}

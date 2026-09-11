@@ -29,6 +29,9 @@ export interface AuthContextType {
   isLoading: boolean;
   currentScreen: ScreenName;
   navigate: (screen: ScreenName) => void;
+  goBack: () => void;
+  canGoBack: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
+
