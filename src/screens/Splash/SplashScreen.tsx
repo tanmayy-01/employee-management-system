@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Image,
-  StyleSheet,
   StatusBar,
   Dimensions,
   Animated,
@@ -11,18 +10,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
+import { styles } from './Splash.styles';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Responsive element dimensions based on screen proportions
-const ILLUSTRATION_WIDTH = Math.min(SCREEN_WIDTH * 0.67, 300);
-const ILLUSTRATION_HEIGHT = ILLUSTRATION_WIDTH * (286 / 512);
+export const ILLUSTRATION_WIDTH = Math.min(SCREEN_WIDTH * 0.67, 300);
+export const ILLUSTRATION_HEIGHT = ILLUSTRATION_WIDTH * (286 / 512);
 
-const LOGO_WIDTH = Math.min(SCREEN_WIDTH * 0.48, 210);
-const LOGO_HEIGHT = LOGO_WIDTH * (147 / 184);
+export const LOGO_WIDTH = Math.min(SCREEN_WIDTH * 0.48, 210);
+export const LOGO_HEIGHT = LOGO_WIDTH * (147 / 184);
 
-const SPACING_ILLUSTRATION_TO_LOGO = Math.round(SCREEN_HEIGHT * 0.088);
-const SPACING_LOGO_TO_DOTS = Math.round(SCREEN_HEIGHT * 0.075);
+export const SPACING_ILLUSTRATION_TO_LOGO = Math.round(SCREEN_HEIGHT * 0.088);
+export const SPACING_LOGO_TO_DOTS = Math.round(SCREEN_HEIGHT * 0.075);
 
 interface SplashScreenProps {
   onFinish?: () => void;
@@ -180,51 +180,5 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FAF8FF',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#FAF8FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  illustration: {
-    width: ILLUSTRATION_WIDTH,
-    height: ILLUSTRATION_HEIGHT,
-    marginBottom: SPACING_ILLUSTRATION_TO_LOGO,
-  },
-  logo: {
-    width: LOGO_WIDTH,
-    height: LOGO_HEIGHT,
-    marginBottom: SPACING_LOGO_TO_DOTS,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#1D61F2',
-    marginHorizontal: 3,
-  },
-  statusText: {
-    fontSize: 13,
-    color: '#848695',
-    fontWeight: '400',
-    letterSpacing: 0.1,
-  },
-});
 
 export default SplashScreen;
