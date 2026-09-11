@@ -14,6 +14,7 @@ import {
   NotificationsScreen,
   ProfileScreen,
   EditProfileScreen,
+  AttendanceScreen,
 } from '../screens';
 
 export const RootNavigator: React.FC = () => {
@@ -48,6 +49,8 @@ export const RootNavigator: React.FC = () => {
       case 'Dashboard':
       case 'Home':
         return <DashboardScreen />;
+      case 'Attendance':
+        return <AttendanceScreen />;
       case 'Profile':
         return <ProfileScreen />;
       case 'EditProfile':

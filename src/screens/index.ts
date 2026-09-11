@@ -9,3 +9,4 @@ export * from './Settings';
 export * from './Notifications';
 export * from './Profile';
 export * from './EditProfile';
+export * from './Attendance';
