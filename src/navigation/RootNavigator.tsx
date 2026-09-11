@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Animated } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { SplashScreen, LoginScreen } from '../screens';
+import { SplashScreen, LoginScreen, ForgotPasswordScreen } from '../screens';
 
 export const RootNavigator: React.FC = () => {
   const { currentScreen, navigate } = useAuth();
@@ -23,6 +23,8 @@ export const RootNavigator: React.FC = () => {
         return <SplashScreen onFinish={() => navigate('Login')} duration={2500} />;
       case 'Login':
         return <LoginScreen />;
+      case 'ForgotPassword':
+        return <ForgotPasswordScreen />;
       default:
         return <LoginScreen />;
     }

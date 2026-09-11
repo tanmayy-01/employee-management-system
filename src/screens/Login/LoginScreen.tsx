@@ -22,7 +22,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const LoginScreen: React.FC = () => {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, navigate } = useAuth();
 
   const [email, setEmail] = useState('demo@workpulse.com');
   const [password, setPassword] = useState('password123');
@@ -48,19 +48,11 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      'Forgot Password',
-      'A password reset link will be sent to your registered email address.',
-      [{ text: 'OK' }]
-    );
+    navigate('ForgotPassword');
   };
 
-  const handleContactAdmin = () => {
-    Alert.alert(
-      'Contact Admin',
-      'Please contact your organization administrator at admin@workpulse.com to create a new employee account.',
-      [{ text: 'OK' }]
-    );
+  const handleSignUp = () => {
+    //
   };
 
   return (
@@ -200,8 +192,8 @@ const LoginScreen: React.FC = () => {
             {/* Bottom Contact Admin Row */}
             <View style={styles.bottomRow}>
               <Text style={styles.bottomText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={handleContactAdmin} activeOpacity={0.7}>
-                <Text style={styles.contactAdminLink}>Contact Admin</Text>
+              <TouchableOpacity onPress={handleSignUp} activeOpacity={0.7}>
+                <Text style={styles.contactAdminLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>

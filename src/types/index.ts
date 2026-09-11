@@ -8,7 +8,7 @@ export interface User {
   avatarUrl?: string;
 }
 
-export type ScreenName = 'Splash' | 'Login' | 'Home';
+export type ScreenName = 'Splash' | 'Login' | 'ForgotPassword' | 'Home';
 
 export interface AuthContextType {
   user: User | null;
