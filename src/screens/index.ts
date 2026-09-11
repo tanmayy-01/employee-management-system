@@ -10,3 +10,4 @@ export * from './Notifications';
 export * from './Profile';
 export * from './EditProfile';
 export * from './Attendance';
+export * from './ChangePassword';

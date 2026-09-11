@@ -27,6 +27,7 @@ const DEFAULT_PREVIOUS_SCREEN: Record<ScreenName, ScreenName | null> = {
   Settings: 'Dashboard',
   Notifications: 'Dashboard',
   EditProfile: 'Profile',
+  ChangePassword: 'Settings',
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

@@ -21,7 +21,8 @@ export type ScreenName =
   | 'Profile'
   | 'Settings'
   | 'Notifications'
-  | 'EditProfile';
+  | 'EditProfile'
+  | 'ChangePassword';
 
 export interface AuthContextType {
   user: User | null;

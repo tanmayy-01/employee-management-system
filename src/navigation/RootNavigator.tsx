@@ -15,6 +15,7 @@ import {
   ProfileScreen,
   EditProfileScreen,
   AttendanceScreen,
+  ChangePasswordScreen,
 } from '../screens';
 
 
@@ -98,6 +99,8 @@ export const RootNavigator: React.FC = () => {
         return <SettingsScreen />;
       case 'Notifications':
         return <NotificationsScreen />;
+      case 'ChangePassword':
+        return <ChangePasswordScreen />;
       default:
         return <LoginScreen />;
     }

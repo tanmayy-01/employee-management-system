@@ -52,17 +52,7 @@ const SettingsScreen: React.FC = () => {
     };
 
     const handleSecurityPrivacy = () => {
-        Alert.alert(
-            'Security & Privacy',
-            'Manage two-factor authentication and password security from your enterprise portal.',
-            [
-                {
-                    text: 'Reset Password',
-                    onPress: () => navigate('ForgotPassword'),
-                },
-                { text: 'Close', style: 'cancel' },
-            ]
-        );
+        navigate('ChangePassword');
     };
 
     return (
