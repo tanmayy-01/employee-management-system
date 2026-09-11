@@ -13,6 +13,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { BottomTabBar } from '../../components/BottomTabBar';
+import { styles } from './Notifications.styles';
 
 interface NotificationItem {
     id: string;
@@ -202,128 +203,6 @@ export const NotificationsScreen: React.FC = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#FAF8FF',
-    },
-    topHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 18,
-        paddingVertical: 12,
-        backgroundColor: '#FAF8FF',
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatarWrapper: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        overflow: 'hidden',
-        borderWidth: 1.5,
-        borderColor: '#D6E4FF',
-        marginRight: 10,
-    },
-    avatarImage: {
-        width: '100%',
-        height: '100%',
-    },
-    brandTitle: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#004AC6',
-        letterSpacing: -0.3,
-    },
-    bellButton: {
-        width: 38,
-        height: 38,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 19,
-        backgroundColor: '#FFFFFF',
-        shadowColor: '#1A2A4E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-        elevation: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 24,
-    },
-    titleSection: {
-        marginTop: 8,
-        marginBottom: 16,
-    },
-    screenTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        color: '#111827',
-        letterSpacing: -0.2,
-    },
-    section: {
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#6B7280',
-        marginBottom: 10,
-        marginLeft: 2,
-    },
-    notificationCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 14,
-        padding: 14,
-        marginBottom: 10,
-        shadowColor: '#1A2A4E',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 1.5,
-        borderWidth: 1,
-        borderColor: 'rgba(226, 232, 240, 0.7)',
-    },
-    iconCircle: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 13,
-    },
-    contentColumn: {
-        flex: 1,
-    },
-    cardHeaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 3,
-    },
-    itemTitle: {
-        fontSize: 13.5,
-        fontWeight: '700',
-        color: '#111827',
-        flex: 1,
-        marginRight: 8,
-    },
-    itemTime: {
-        fontSize: 11,
-        color: '#6B7280',
-        fontWeight: '500',
-    },
-    itemDescription: {
-        fontSize: 12,
-        color: '#6B7280',
-        lineHeight: 16,
-    },
-});
+
 
 export default NotificationsScreen;
