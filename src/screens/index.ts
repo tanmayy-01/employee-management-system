@@ -5,3 +5,4 @@ export * from './OtpVerification';
 export * from './ResetPassword';
 export * from './SignUp';
 export * from './Dashboard';
+export * from './Settings';

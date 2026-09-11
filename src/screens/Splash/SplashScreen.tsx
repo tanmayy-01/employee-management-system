@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../theme/ThemeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }) => {
+  const { colors, isDark } = useTheme();
   const dot1Anim = useRef(new Animated.Value(0.3)).current;
   const dot2Anim = useRef(new Animated.Value(0.3)).current;
   const dot3Anim = useRef(new Animated.Value(0.3)).current;
@@ -36,10 +38,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
 
   useEffect(() => {
     if (Platform.OS === 'android') {
-      (StatusBar as any).setBackgroundColor?.('#FAF8FF', true);
+      (StatusBar as any).setBackgroundColor?.(isDark ? colors.background : '#FAF8FF', true);
       (StatusBar as any).setTranslucent?.(true);
     }
-  }, []);
+  }, [isDark, colors.background]);
 
   useEffect(() => {
     if (onFinish) {
@@ -91,9 +93,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
   }, [dot1Anim, dot2Anim, dot3Anim]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#FAF8FF' }]}
+    >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <Animated.View
+        style={[
+          styles.container,
+          { backgroundColor: isDark ? colors.background : '#FAF8FF', opacity: fadeAnim },
+        ]}
+      >
         {/* Top Section: Team Illustration */}
         <Image
           source={require('../../assets/splash-image-1.jpg')}
@@ -115,6 +124,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
               style={[
                 styles.dot,
                 {
+                  backgroundColor: colors.primary,
                   opacity: dot1Anim,
                   transform: [
                     {
@@ -131,6 +141,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
               style={[
                 styles.dot,
                 {
+                  backgroundColor: colors.primary,
                   opacity: dot2Anim,
                   transform: [
                     {
@@ -147,6 +158,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
               style={[
                 styles.dot,
                 {
+                  backgroundColor: colors.primary,
                   opacity: dot3Anim,
                   transform: [
                     {
@@ -160,7 +172,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish, duration = 2500 }
               ]}
             />
           </View>
-          <Text style={styles.statusText}>Initializing system...</Text>
+          <Text style={[styles.statusText, { color: colors.textTertiary }]}>
+            Initializing system...
+          </Text>
         </View>
       </Animated.View>
     </SafeAreaView>

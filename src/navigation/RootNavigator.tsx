@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Animated } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 import {
   SplashScreen,
   LoginScreen,
@@ -9,10 +10,12 @@ import {
   ResetPasswordScreen,
   SignUpScreen,
   DashboardScreen,
+  SettingsScreen,
 } from '../screens';
 
 export const RootNavigator: React.FC = () => {
   const { currentScreen, navigate } = useAuth();
+  const { colors } = useTheme();
   const screenFadeAnim = useRef(new Animated.Value(1)).current;
 
   // Fade transition on screen change
@@ -42,13 +45,15 @@ export const RootNavigator: React.FC = () => {
       case 'Dashboard':
       case 'Home':
         return <DashboardScreen />;
+      case 'Settings':
+        return <SettingsScreen />;
       default:
         return <LoginScreen />;
     }
   };
 
   return (
-    <Animated.View style={[styles.container, { opacity: screenFadeAnim }]}>
+    <Animated.View style={[styles.container, { backgroundColor: colors.background, opacity: screenFadeAnim }]}>
       {renderCurrentScreen()}
     </Animated.View>
   );
@@ -57,7 +62,6 @@ export const RootNavigator: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF8FF',
   },
 });
 

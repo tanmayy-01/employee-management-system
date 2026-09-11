@@ -16,11 +16,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../theme/ThemeContext';
 
 type StrengthLevel = 'Weak' | 'Medium' | 'Strong' | '';
 
 const ResetPasswordScreen: React.FC = () => {
   const { navigate } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -50,13 +52,13 @@ const ResetPasswordScreen: React.FC = () => {
   const getStrengthColor = (level: StrengthLevel) => {
     switch (level) {
       case 'Weak':
-        return '#EF4444';
+        return colors.error;
       case 'Medium':
-        return '#004AC6';
+        return colors.primary;
       case 'Strong':
-        return '#004AC6';
+        return colors.primary;
       default:
-        return '#6B7280';
+        return colors.textSecondary;
     }
   };
 
@@ -112,8 +114,10 @@ const ResetPasswordScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#EDF1FA' }]}
+    >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
@@ -130,32 +134,57 @@ const ResetPasswordScreen: React.FC = () => {
               style={styles.brandIcon}
               resizeMode="contain"
             />
-            <Text style={styles.brandTitle}>WorkPulse</Text>
+            <Text style={[styles.brandTitle, { color: colors.primary }]}>WorkPulse</Text>
           </View>
 
-          {/* White Card Container */}
-          <View style={styles.card}>
+          {/* White / Dark Card Container */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.cardBorder,
+                shadowColor: colors.shadowColor,
+              },
+            ]}
+          >
             {/* Title & Subtitle */}
-            <Text style={styles.title}>Create New Password</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Create New Password</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               Your new password must be different from previous used passwords.
             </Text>
 
             {/* Error Message */}
             {errorMessage ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <View
+                style={[
+                  styles.errorBox,
+                  {
+                    backgroundColor: colors.errorBackground,
+                    borderColor: colors.errorBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.error }]}>{errorMessage}</Text>
               </View>
             ) : null}
 
             {/* New Password Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>New Password</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>New Password</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#FFFFFF',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="Enter new password"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={newPassword}
                   onChangeText={(text) => {
                     setNewPassword(text);
@@ -173,7 +202,7 @@ const ResetPasswordScreen: React.FC = () => {
                   <Ionicons
                     name={showNewPassword ? 'eye-outline' : 'eye-off-outline'}
                     size={19}
-                    color="#737686"
+                    color={colors.iconColor}
                   />
                 </TouchableOpacity>
               </View>
@@ -182,7 +211,7 @@ const ResetPasswordScreen: React.FC = () => {
             {/* Password Strength Indicator */}
             <View style={styles.strengthContainer}>
               <View style={styles.strengthHeader}>
-                <Text style={styles.strengthLabel}>Password Strength</Text>
+                <Text style={[styles.strengthLabel, { color: colors.textSecondary }]}>Password Strength</Text>
                 {strengthLevel ? (
                   <Text style={[styles.strengthValue, { color: getStrengthColor(strengthLevel) }]}>
                     {strengthLevel}
@@ -199,8 +228,12 @@ const ResetPasswordScreen: React.FC = () => {
                       key={barIndex}
                       style={[
                         styles.barSegment,
-                        isFilled && {
-                          backgroundColor: getStrengthColor(strengthLevel),
+                        {
+                          backgroundColor: isFilled
+                            ? getStrengthColor(strengthLevel)
+                            : isDark
+                            ? colors.inputBorder
+                            : '#E2E8F0',
                         },
                       ]}
                     />
@@ -208,17 +241,27 @@ const ResetPasswordScreen: React.FC = () => {
                 })}
               </View>
 
-              <Text style={styles.strengthHint}>Must be at least 8 characters long.</Text>
+              <Text style={[styles.strengthHint, { color: colors.textTertiary }]}>
+                Must be at least 8 characters long.
+              </Text>
             </View>
 
             {/* Confirm Password Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Confirm Password</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#FFFFFF',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="Confirm new password"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={confirmPassword}
                   onChangeText={(text) => {
                     setConfirmPassword(text);
@@ -236,7 +279,7 @@ const ResetPasswordScreen: React.FC = () => {
                   <Ionicons
                     name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
                     size={19}
-                    color="#737686"
+                    color={colors.iconColor}
                   />
                 </TouchableOpacity>
               </View>
@@ -244,7 +287,11 @@ const ResetPasswordScreen: React.FC = () => {
 
             {/* Reset Password Button */}
             <TouchableOpacity
-              style={[styles.resetButton, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.resetButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+                isLoading && styles.buttonDisabled,
+              ]}
               onPress={handleResetPassword}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -274,21 +321,26 @@ const ResetPasswordScreen: React.FC = () => {
               <Ionicons
                 name="arrow-back"
                 size={14}
-                color="#0052CC"
+                color={colors.primary}
                 style={styles.backIcon}
               />
-              <Text style={styles.backButtonText}>Back to Login</Text>
+              <Text style={[styles.backButtonText, { color: colors.primary }]}>Back to Login</Text>
             </TouchableOpacity>
           </View>
 
           {/* Bottom Policy & Terms Footer */}
           <View style={styles.footerRow}>
             <TouchableOpacity activeOpacity={0.7}>
-              <Text style={styles.footerLink}>Privacy Policy</Text>
+              <Text style={[styles.footerLink, { color: colors.textSecondary }]}>Privacy Policy</Text>
             </TouchableOpacity>
-            <View style={styles.footerDot} />
+            <View
+              style={[
+                styles.footerDot,
+                { backgroundColor: isDark ? colors.textTertiary : '#9CA3AF' },
+              ]}
+            />
             <TouchableOpacity activeOpacity={0.7}>
-              <Text style={styles.footerLink}>Terms of Service</Text>
+              <Text style={[styles.footerLink, { color: colors.textSecondary }]}>Terms of Service</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

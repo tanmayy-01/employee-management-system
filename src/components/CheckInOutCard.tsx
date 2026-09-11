@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
+import { useTheme } from '../theme/ThemeContext';
 
 export interface CheckInOutCardProps {
   variant?: 'session' | 'full';
@@ -28,6 +29,7 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   todayHours = '0h 0m',
   weekHours = '32h 15m',
 }) => {
+  const { colors, isDark } = useTheme();
   const [checkedIn, setCheckedIn] = useState(isCheckedIn);
   const [sessionSeconds, setSessionSeconds] = useState(initialSessionSeconds);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -113,11 +115,21 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   // -------------------------------------------------------------
   if (variant === 'session' && checkedIn) {
     return (
-      <View style={[styles.card, styles.cardCheckedIn]}>
+      <View
+        style={[
+          styles.card,
+          styles.cardCheckedIn,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
+            shadowColor: colors.shadowColor,
+          },
+        ]}
+      >
         {/* Header Row */}
         <View style={styles.sessionHeaderRow}>
-          <Text style={styles.sessionTitle}>Current Status</Text>
-          <View style={styles.checkedInBadge}>
+          <Text style={[styles.sessionTitle, { color: colors.textPrimary }]}>Current Status</Text>
+          <View style={[styles.checkedInBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#E6F9F0' }]}>
             <View style={styles.greenDot} />
             <Text style={styles.checkedInBadgeText}>Checked In</Text>
           </View>
@@ -125,23 +137,26 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
 
         {/* Center Clock / Duration */}
         <View style={styles.sessionBody}>
-          <Text style={styles.sessionSubtitle}>Session Duration</Text>
-          <Text style={styles.sessionDuration}>
+          <Text style={[styles.sessionSubtitle, { color: colors.textSecondary }]}>Session Duration</Text>
+          <Text style={[styles.sessionDuration, { color: colors.textPrimary }]}>
             {formatSessionTime(sessionSeconds)}
           </Text>
         </View>
 
         {/* Action Button */}
         <TouchableOpacity
-          style={styles.checkOutButton}
+          style={[
+            styles.checkOutButton,
+            { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#F3F4F6' },
+          ]}
           onPress={() => handleToggle('out')}
           disabled={isLoading}
           activeOpacity={0.75}
         >
           {isLoading ? (
-            <ActivityIndicator color="#DC2626" size="small" />
+            <ActivityIndicator color={colors.error} size="small" />
           ) : (
-            <Text style={styles.checkOutButtonText}>Check Out</Text>
+            <Text style={[styles.checkOutButtonText, { color: colors.error }]}>Check Out</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -152,13 +167,37 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   // Ready to Check In State (Matches provided UI screenshot)
   // -------------------------------------------------------------
   return (
-    <View style={styles.fullCard}>
+    <View
+      style={[
+        styles.fullCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.cardBorder,
+          borderLeftColor: checkedIn ? '#10B981' : isDark ? '#4B5563' : '#94A3B8',
+          shadowColor: colors.shadowColor,
+        },
+      ]}
+    >
       {/* Top Status Pill */}
       <View style={styles.fullStatusRow}>
-        <Text style={styles.statusSectionLabel}>CURRENT STATUS</Text>
-        <View style={checkedIn ? styles.checkedInBadge : styles.readyBadge}>
+        <Text style={[styles.statusSectionLabel, { color: isDark ? colors.textTertiary : '#4B5563' }]}>
+          CURRENT STATUS
+        </Text>
+        <View
+          style={
+            checkedIn
+              ? [styles.checkedInBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#E6F9F0' }]
+              : [styles.readyBadge, { backgroundColor: isDark ? colors.inputBackground : '#F1F5F9' }]
+          }
+        >
           <View style={checkedIn ? styles.greenDot : styles.grayDot} />
-          <Text style={checkedIn ? styles.checkedInBadgeText : styles.readyBadgeText}>
+          <Text
+            style={
+              checkedIn
+                ? styles.checkedInBadgeText
+                : [styles.readyBadgeText, { color: isDark ? colors.textSecondary : '#475569' }]
+            }
+          >
             {checkedIn ? 'Checked In' : 'Ready to Check In'}
           </Text>
         </View>
@@ -166,14 +205,18 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
 
       {/* Big Time Display */}
       <View style={styles.clockContainer}>
-        <Text style={styles.bigClockText}>{formatClockTime(currentTime)}</Text>
-        <Text style={styles.clockDateText}>{formatDate(currentTime)}</Text>
+        <Text style={[styles.bigClockText, { color: colors.textPrimary }]}>{formatClockTime(currentTime)}</Text>
+        <Text style={[styles.clockDateText, { color: colors.textSecondary }]}>{formatDate(currentTime)}</Text>
       </View>
 
       {/* Buttons */}
       <View style={styles.fullButtonsContainer}>
         <TouchableOpacity
-          style={[styles.primaryCheckInButton, checkedIn && styles.buttonMuted]}
+          style={[
+            styles.primaryCheckInButton,
+            { backgroundColor: colors.primary },
+            checkedIn && [styles.buttonMuted, { backgroundColor: isDark ? colors.inputBackground : '#F1F3FB' }],
+          ]}
           onPress={() => handleToggle('in')}
           disabled={checkedIn || isLoading}
           activeOpacity={0.85}
@@ -185,10 +228,15 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
               <Ionicons
                 name="log-in-outline"
                 size={18}
-                color={checkedIn ? '#94A3B8' : '#FFFFFF'}
+                color={checkedIn ? (isDark ? colors.textTertiary : '#94A3B8') : '#FFFFFF'}
                 style={styles.buttonIcon}
               />
-              <Text style={[styles.primaryCheckInText, checkedIn && styles.buttonTextMuted]}>
+              <Text
+                style={[
+                  styles.primaryCheckInText,
+                  checkedIn && [styles.buttonTextMuted, { color: isDark ? colors.textTertiary : '#94A3B8' }],
+                ]}
+              >
                 Check In
               </Text>
             </View>
@@ -196,22 +244,32 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.primaryCheckOutButton, !checkedIn && styles.buttonMuted]}
+          style={[
+            styles.primaryCheckOutButton,
+            { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EEF2FF' },
+            !checkedIn && [styles.buttonMuted, { backgroundColor: isDark ? colors.inputBackground : '#F1F3FB' }],
+          ]}
           onPress={() => handleToggle('out')}
           disabled={!checkedIn || isLoading}
           activeOpacity={0.85}
         >
           {isLoading && checkedIn ? (
-            <ActivityIndicator color="#DC2626" size="small" />
+            <ActivityIndicator color={colors.error} size="small" />
           ) : (
             <View style={styles.buttonContent}>
               <Ionicons
                 name="log-out-outline"
                 size={18}
-                color={!checkedIn ? '#94A3B8' : '#DC2626'}
+                color={!checkedIn ? (isDark ? colors.textTertiary : '#94A3B8') : colors.error}
                 style={styles.buttonIcon}
               />
-              <Text style={[styles.primaryCheckOutText, !checkedIn && styles.buttonTextMuted]}>
+              <Text
+                style={[
+                  styles.primaryCheckOutText,
+                  { color: colors.primary },
+                  !checkedIn && [styles.buttonTextMuted, { color: isDark ? colors.textTertiary : '#94A3B8' }],
+                ]}
+              >
                 Check Out
               </Text>
             </View>
@@ -220,16 +278,26 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
       </View>
 
       {/* Footer Stats Row */}
-      <View style={styles.footerDivider} />
+      <View
+        style={[
+          styles.footerDivider,
+          { backgroundColor: isDark ? colors.inputBorder : '#F1F5F9' },
+        ]}
+      />
       <View style={styles.footerStatsRow}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{todayHours}</Text>
-          <Text style={styles.statLabel}>Today</Text>
+          <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{todayHours}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Today</Text>
         </View>
-        <View style={styles.verticalDivider} />
+        <View
+          style={[
+            styles.verticalDivider,
+            { backgroundColor: isDark ? colors.inputBorder : '#E2E8F0' },
+          ]}
+        />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{weekHours}</Text>
-          <Text style={styles.statLabel}>This Week</Text>
+          <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{weekHours}</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>This Week</Text>
         </View>
       </View>
     </View>

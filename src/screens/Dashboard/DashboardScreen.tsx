@@ -11,11 +11,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../theme/ThemeContext';
 import { CheckInOutCard } from '../../components/CheckInOutCard';
 import { BottomTabBar } from '../../components/BottomTabBar';
 
 const DashboardScreen: React.FC = () => {
     const { user } = useAuth();
+    const { colors, isDark } = useTheme();
     const [isCheckedIn, setIsCheckedIn] = useState(false);
 
     const userName = user?.name || 'Alex Rivera';
@@ -45,20 +47,32 @@ const DashboardScreen: React.FC = () => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView
+            style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#FAF8FF' }]}
+            edges={['top', 'left', 'right']}
+        >
+            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
             {/* Top Header Bar */}
-            <View style={styles.topHeader}>
+            <View style={[styles.topHeader, { backgroundColor: isDark ? colors.background : '#FAF8FF' }]}>
                 <View style={styles.headerLeft}>
-                    <View style={styles.avatarWrapper}>
+                    <View style={[styles.avatarWrapper, { borderColor: isDark ? colors.inputBorder : '#D6E4FF' }]}>
                         <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                     </View>
-                    <Text style={styles.brandTitle}>WorkPulse</Text>
+                    <Text style={[styles.brandTitle, { color: colors.primary }]}>WorkPulse</Text>
                 </View>
 
-                <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
-                    <Ionicons name="notifications-outline" size={22} color="#004AC6" />
+                <TouchableOpacity
+                    style={[
+                        styles.bellButton,
+                        {
+                            backgroundColor: colors.card,
+                            shadowColor: colors.shadowColor,
+                        },
+                    ]}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="notifications-outline" size={22} color={colors.primary} />
                 </TouchableOpacity>
             </View>
 
@@ -68,40 +82,95 @@ const DashboardScreen: React.FC = () => {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Welcome Greeting Card */}
-                <View style={styles.greetingCard}>
-                    <View style={styles.decorativeShape} />
-                    <Text style={styles.greetingDate}>{getCurrentDateFormatted()}</Text>
-                    <Text style={styles.greetingTitle}>Good morning, {userName}</Text>
+                <View
+                    style={[
+                        styles.greetingCard,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                            shadowColor: colors.shadowColor,
+                        },
+                    ]}
+                >
+                    <View
+                        style={[
+                            styles.decorativeShape,
+                            { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.08)' : '#EBF2FF' },
+                        ]}
+                    />
+                    <Text style={[styles.greetingDate, { color: colors.textSecondary }]}>
+                        {getCurrentDateFormatted()}
+                    </Text>
+                    <Text style={[styles.greetingTitle, { color: colors.textPrimary }]}>
+                        Good morning, {userName}
+                    </Text>
                     <View style={styles.empIdRow}>
                         <Ionicons
                             name="id-card-outline"
                             size={13}
-                            color="#6B7280"
+                            color={colors.textSecondary}
                             style={styles.empIcon}
                         />
-                        <Text style={styles.empIdText}>ID: {employeeId}</Text>
+                        <Text style={[styles.empIdText, { color: colors.textSecondary }]}>
+                            ID: {employeeId}
+                        </Text>
                     </View>
                 </View>
 
                 {/* Total Hours Today Stat Card */}
-                <View style={styles.statCard}>
-                    <View style={styles.blueStatIconWrapper}>
+                <View
+                    style={[
+                        styles.statCard,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                            shadowColor: colors.shadowColor,
+                        },
+                    ]}
+                >
+                    <View style={[styles.blueStatIconWrapper, { backgroundColor: colors.primary }]}>
                         <Ionicons name="time" size={20} color="#FFFFFF" />
                     </View>
                     <View style={styles.statInfo}>
-                        <Text style={styles.statLabel}>TOTAL HOURS TODAY</Text>
-                        <Text style={styles.statValue}>{isCheckedIn ? '4h 32m' : '0h 0m'}</Text>
+                        <Text style={[styles.statLabel, { color: isDark ? colors.textTertiary : '#64748B' }]}>
+                            TOTAL HOURS TODAY
+                        </Text>
+                        <Text style={[styles.statValue, { color: colors.textPrimary }]}>
+                            {isCheckedIn ? '4h 32m' : '0h 0m'}
+                        </Text>
                     </View>
                 </View>
 
                 {/* Remaining Hours Stat Card */}
-                <View style={styles.statCard}>
-                    <View style={styles.grayStatIconWrapper}>
-                        <Ionicons name="hourglass-outline" size={20} color="#64748B" />
+                <View
+                    style={[
+                        styles.statCard,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                            shadowColor: colors.shadowColor,
+                        },
+                    ]}
+                >
+                    <View
+                        style={[
+                            styles.grayStatIconWrapper,
+                            { backgroundColor: isDark ? colors.inputBackground : '#EDF1FA' },
+                        ]}
+                    >
+                        <Ionicons
+                            name="hourglass-outline"
+                            size={20}
+                            color={isDark ? colors.textSecondary : '#64748B'}
+                        />
                     </View>
                     <View style={styles.statInfo}>
-                        <Text style={styles.statLabel}>REMAINING HOURS</Text>
-                        <Text style={styles.statValue}>{isCheckedIn ? '3h 28m' : '8h 00m'}</Text>
+                        <Text style={[styles.statLabel, { color: isDark ? colors.textTertiary : '#64748B' }]}>
+                            REMAINING HOURS
+                        </Text>
+                        <Text style={[styles.statValue, { color: colors.textPrimary }]}>
+                            {isCheckedIn ? '3h 28m' : '8h 00m'}
+                        </Text>
                     </View>
                 </View>
 
@@ -116,22 +185,33 @@ const DashboardScreen: React.FC = () => {
                 />
 
                 {/* Today's Timeline Card */}
-                <View style={styles.timelineCard}>
-                    <Text style={styles.timelineTitle}>Today's Timeline</Text>
+                <View
+                    style={[
+                        styles.timelineCard,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                            shadowColor: colors.shadowColor,
+                        },
+                    ]}
+                >
+                    <Text style={[styles.timelineTitle, { color: colors.textPrimary }]}>
+                        Today's Timeline
+                    </Text>
                     <View style={styles.timelineItem}>
                         <Ionicons
                             name={isCheckedIn ? 'radio-button-on' : 'radio-button-off'}
                             size={20}
-                            color={isCheckedIn ? '#004AC6' : '#94A3B8'}
+                            color={isCheckedIn ? colors.primary : isDark ? colors.textTertiary : '#94A3B8'}
                             style={styles.timelineDotIcon}
                         />
                         <View style={styles.timelineContent}>
-                            <Text style={styles.timelineItemTitle}>
+                            <Text style={[styles.timelineItemTitle, { color: colors.textPrimary }]}>
                                 {isCheckedIn ? 'Checked In (Current)' : 'Not Checked In Yet'}
                             </Text>
                             <View style={styles.timelineLocationRow}>
-                                <Ionicons name="location-outline" size={13} color="#6B7280" />
-                                <Text style={styles.timelineLocationText}>
+                                <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
+                                <Text style={[styles.timelineLocationText, { color: colors.textSecondary }]}>
                                     {isCheckedIn ? 'Main Office • 08:30 AM' : 'Main Office • Ready for check-in'}
                                 </Text>
                             </View>

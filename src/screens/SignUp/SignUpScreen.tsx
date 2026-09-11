@@ -16,9 +16,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../theme/ThemeContext';
 
 const SignUpScreen: React.FC = () => {
   const { navigate } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const [fullName, setFullName] = useState('');
   const [workEmail, setWorkEmail] = useState('');
@@ -92,26 +94,44 @@ const SignUpScreen: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.successContainer}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#EDF1FA' }]}
+      >
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View
+          style={[
+            styles.successContainer,
+            { backgroundColor: isDark ? colors.background : '#EDF1FA' },
+          ]}
+        >
           <View style={styles.successCard}>
             {/* Success Checkmark Badge */}
-            <View style={styles.successIconOuter}>
-              <View style={styles.successIconInner}>
+            <View
+              style={[
+                styles.successIconOuter,
+                {
+                  backgroundColor: colors.card,
+                  shadowColor: colors.shadowColor,
+                },
+              ]}
+            >
+              <View style={[styles.successIconInner, { backgroundColor: colors.primary }]}>
                 <Ionicons name="checkmark" size={28} color="#FFFFFF" />
               </View>
             </View>
 
             {/* Success Heading & Message */}
-            <Text style={styles.successTitle}>Success!</Text>
-            <Text style={styles.successSubtitle}>
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>Success!</Text>
+            <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>
               Your action has been processed successfully.{'\n'}You can now continue using the app.
             </Text>
 
             {/* Action Buttons */}
             <TouchableOpacity
-              style={styles.continueButton}
+              style={[
+                styles.continueButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+              ]}
               onPress={() => navigate('Login')}
               activeOpacity={0.85}
             >
@@ -119,11 +139,19 @@ const SignUpScreen: React.FC = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.dashboardButton}
+              style={[
+                styles.dashboardButton,
+                {
+                  backgroundColor: isDark ? colors.card : '#F3F6FD',
+                  borderColor: isDark ? colors.cardBorder : '#D8E2F0',
+                },
+              ]}
               onPress={() => navigate('Home')}
               activeOpacity={0.7}
             >
-              <Text style={styles.dashboardButtonText}>Go to Dashboard</Text>
+              <Text style={[styles.dashboardButtonText, { color: colors.textPrimary }]}>
+                Go to Dashboard
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -132,8 +160,10 @@ const SignUpScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#EDF1FA' }]}
+    >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
@@ -150,36 +180,61 @@ const SignUpScreen: React.FC = () => {
               style={styles.brandLogo}
               resizeMode="contain"
             />
-            <Text style={styles.brandTitle}>WorkPulse</Text>
+            <Text style={[styles.brandTitle, { color: colors.primary }]}>WorkPulse</Text>
           </View>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Create your employee account to get started.
           </Text>
 
-          {/* White Card Container */}
-          <View style={styles.card}>
+          {/* White / Dark Card Container */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.cardBorder,
+                shadowColor: colors.shadowColor,
+              },
+            ]}
+          >
             {/* Error Message */}
             {errorMessage ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <View
+                style={[
+                  styles.errorBox,
+                  {
+                    backgroundColor: colors.errorBackground,
+                    borderColor: colors.errorBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.error }]}>{errorMessage}</Text>
               </View>
             ) : null}
 
             {/* Full Name Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Full Name</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Full Name</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F3F6FD',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="person-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="Jane Doe"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={fullName}
                   onChangeText={(text) => {
                     setFullName(text);
@@ -192,18 +247,26 @@ const SignUpScreen: React.FC = () => {
 
             {/* Work Email Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Work Email</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Work Email</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F3F6FD',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="mail-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="jane.doe@company.com"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={workEmail}
                   onChangeText={(text) => {
                     setWorkEmail(text);
@@ -218,18 +281,26 @@ const SignUpScreen: React.FC = () => {
 
             {/* Employee ID Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Employee ID</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Employee ID</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F3F6FD',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="id-card-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="EMP-12345"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={employeeId}
                   onChangeText={(text) => {
                     setEmployeeId(text);
@@ -243,18 +314,26 @@ const SignUpScreen: React.FC = () => {
 
             {/* Password Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Password</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F3F6FD',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="lock-closed-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="••••••••"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -272,7 +351,7 @@ const SignUpScreen: React.FC = () => {
                   <Ionicons
                     name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                     size={19}
-                    color="#737686"
+                    color={colors.iconColor}
                   />
                 </TouchableOpacity>
               </View>
@@ -280,18 +359,26 @@ const SignUpScreen: React.FC = () => {
 
             {/* Confirm Password Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Confirm Password</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F3F6FD',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="key-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="••••••••"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={confirmPassword}
                   onChangeText={(text) => {
                     setConfirmPassword(text);
@@ -309,7 +396,7 @@ const SignUpScreen: React.FC = () => {
                   <Ionicons
                     name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
                     size={19}
-                    color="#737686"
+                    color={colors.iconColor}
                   />
                 </TouchableOpacity>
               </View>
@@ -322,20 +409,36 @@ const SignUpScreen: React.FC = () => {
                 onPress={() => setAgreeTerms(!agreeTerms)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.checkbox, agreeTerms && styles.checkboxChecked]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: colors.checkboxBorder,
+                      backgroundColor: agreeTerms
+                        ? colors.primary
+                        : isDark
+                        ? colors.inputBackground
+                        : '#FFFFFF',
+                    },
+                  ]}
+                >
                   {agreeTerms && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
                 </View>
               </TouchableOpacity>
-              <Text style={styles.termsText}>
+              <Text style={[styles.termsText, { color: colors.textSecondary }]}>
                 I agree to the{' '}
-                <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>.
+                <Text style={[styles.termsLink, { color: colors.primary }]}>Terms of Service</Text> and{' '}
+                <Text style={[styles.termsLink, { color: colors.primary }]}>Privacy Policy</Text>.
               </Text>
             </View>
 
             {/* Create Account Button */}
             <TouchableOpacity
-              style={[styles.createAccountButton, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.createAccountButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+                isLoading && styles.buttonDisabled,
+              ]}
               onPress={handleSignUp}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -357,9 +460,11 @@ const SignUpScreen: React.FC = () => {
 
             {/* Sign In Link */}
             <View style={styles.bottomRow}>
-              <Text style={styles.bottomText}>Already have an account? </Text>
+              <Text style={[styles.bottomText, { color: colors.textSecondary }]}>
+                Already have an account?{' '}
+              </Text>
               <TouchableOpacity onPress={() => navigate('Login')} activeOpacity={0.7}>
-                <Text style={styles.signInLink}>Sign In</Text>
+                <Text style={[styles.signInLink, { color: colors.primary }]}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -550,7 +655,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#FAF8FF',
   },
   successCard: {
     width: '100%',

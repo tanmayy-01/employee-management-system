@@ -17,12 +17,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../theme/ThemeContext';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const LoginScreen: React.FC = () => {
   const { login, isLoading, navigate } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const [email, setEmail] = useState('demo@workpulse.com');
   const [password, setPassword] = useState('password123');
@@ -56,8 +58,10 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#EDF1FA' }]}
+    >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
@@ -74,36 +78,62 @@ const LoginScreen: React.FC = () => {
               style={styles.brandIcon}
               resizeMode="contain"
             />
-            <Text style={styles.brandTitle}>WorkPulse</Text>
+            <Text style={[styles.brandTitle, { color: colors.primary }]}>WorkPulse</Text>
           </View>
 
-          {/* White Login Card */}
-          <View style={styles.card}>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Please enter your details to sign in.</Text>
+          {/* White / Dark Card */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.cardBorder,
+                shadowColor: colors.shadowColor,
+              },
+            ]}
+          >
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Welcome back</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Please enter your details to sign in.
+            </Text>
 
             {/* Error Message */}
             {errorMessage ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <View
+                style={[
+                  styles.errorBox,
+                  {
+                    backgroundColor: colors.errorBackground,
+                    borderColor: colors.errorBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.error }]}>{errorMessage}</Text>
               </View>
             ) : null}
 
             {/* Email Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Email</Text>
-              <View style={styles.inputContainer}>
-
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Email</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F9FAFB',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="mail-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="demo@workpulse.com"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -118,18 +148,26 @@ const LoginScreen: React.FC = () => {
 
             {/* Password Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Password</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  {
+                    backgroundColor: isDark ? colors.inputBackground : '#F9FAFB',
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="lock-closed-outline"
                   size={18}
-                  color="#737686"
+                  color={colors.iconColor}
                   style={styles.inputIcon}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.inputText }]}
                   placeholder="password123"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.inputPlaceholder}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -147,7 +185,7 @@ const LoginScreen: React.FC = () => {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={19}
-                    color="#737686"
+                    color={colors.iconColor}
                   />
                 </TouchableOpacity>
               </View>
@@ -160,10 +198,24 @@ const LoginScreen: React.FC = () => {
                 onPress={() => setRememberMe(!rememberMe)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: colors.checkboxBorder,
+                      backgroundColor: rememberMe
+                        ? colors.primary
+                        : isDark
+                        ? colors.inputBackground
+                        : '#FFFFFF',
+                    },
+                  ]}
+                >
                   {rememberMe && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
                 </View>
-                <Text style={styles.rememberText}>Remember me</Text>
+                <Text style={[styles.rememberText, { color: colors.textSecondary }]}>
+                  Remember me
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -171,13 +223,19 @@ const LoginScreen: React.FC = () => {
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Sign In Button */}
             <TouchableOpacity
-              style={[styles.signInButton, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.signInButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+                isLoading && styles.buttonDisabled,
+              ]}
               onPress={handleLogin}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -191,9 +249,11 @@ const LoginScreen: React.FC = () => {
 
             {/* Bottom Contact Admin Row */}
             <View style={styles.bottomRow}>
-              <Text style={styles.bottomText}>Don't have an account? </Text>
+              <Text style={[styles.bottomText, { color: colors.textSecondary }]}>
+                Don't have an account?{' '}
+              </Text>
               <TouchableOpacity onPress={handleSignUp} activeOpacity={0.7}>
-                <Text style={styles.contactAdminLink}>Sign Up</Text>
+                <Text style={[styles.contactAdminLink, { color: colors.primary }]}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>

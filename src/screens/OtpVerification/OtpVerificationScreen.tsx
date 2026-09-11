@@ -16,12 +16,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../theme/ThemeContext';
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 59;
 
 const OtpVerificationScreen: React.FC = () => {
   const { navigate } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
@@ -117,8 +119,10 @@ const OtpVerificationScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#EDF1FA' }]}
+    >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
@@ -129,7 +133,16 @@ const OtpVerificationScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           {/* Card Container */}
-          <View style={styles.card}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.cardBorder,
+                shadowColor: colors.shadowColor,
+              },
+            ]}
+          >
             {/* Top Email Badge Icon */}
             <View style={styles.iconContainer}>
               <Image
@@ -140,15 +153,23 @@ const OtpVerificationScreen: React.FC = () => {
             </View>
 
             {/* Title & Subtitle */}
-            <Text style={styles.title}>Verify Account</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Verify Account</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               Enter the 6-digit code sent to your email.
             </Text>
 
             {/* Error Message */}
             {errorMessage ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <View
+                style={[
+                  styles.errorBox,
+                  {
+                    backgroundColor: colors.errorBackground,
+                    borderColor: colors.errorBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: colors.error }]}>{errorMessage}</Text>
               </View>
             ) : null}
 
@@ -164,8 +185,16 @@ const OtpVerificationScreen: React.FC = () => {
                     }}
                     style={[
                       styles.otpBox,
+                      {
+                        backgroundColor: isDark ? colors.inputBackground : '#FFFFFF',
+                        borderColor: isFocused
+                          ? colors.primary
+                          : digit
+                          ? colors.primary
+                          : colors.inputBorder,
+                        color: colors.textPrimary,
+                      },
                       isFocused && styles.otpBoxFocused,
-                      digit ? styles.otpBoxFilled : null,
                     ]}
                     value={digit}
                     onChangeText={(text) => handleOtpChange(text, index)}
@@ -182,7 +211,11 @@ const OtpVerificationScreen: React.FC = () => {
 
             {/* Verify & Proceed Button */}
             <TouchableOpacity
-              style={[styles.verifyButton, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.verifyButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+                isLoading && styles.buttonDisabled,
+              ]}
               onPress={handleVerify}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -204,15 +237,19 @@ const OtpVerificationScreen: React.FC = () => {
 
             {/* Resend Code Section */}
             <View style={styles.resendContainer}>
-              <Text style={styles.resendPrompt}>Didn't receive the code?</Text>
+              <Text style={[styles.resendPrompt, { color: colors.textSecondary }]}>
+                Didn't receive the code?
+              </Text>
               {timer > 0 ? (
-                <Text style={styles.timerText}>
-                  <Text style={styles.resendLinkDisabled}>Resend Code </Text>
+                <Text style={[styles.timerText, { color: colors.textSecondary }]}>
+                  <Text style={[styles.resendLinkDisabled, { color: colors.primaryLight }]}>
+                    Resend Code{' '}
+                  </Text>
                   in {formatTimer(timer)}
                 </Text>
               ) : (
                 <TouchableOpacity onPress={handleResend} activeOpacity={0.7}>
-                  <Text style={styles.resendLinkActive}>Resend Code</Text>
+                  <Text style={[styles.resendLinkActive, { color: colors.primary }]}>Resend Code</Text>
                 </TouchableOpacity>
               )}
             </View>
