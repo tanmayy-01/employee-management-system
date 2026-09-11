@@ -7,3 +7,4 @@ export * from './SignUp';
 export * from './Dashboard';
 export * from './Settings';
 export * from './Notifications';
+export * from './Profile';
