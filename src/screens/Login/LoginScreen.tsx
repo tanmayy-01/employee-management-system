@@ -21,8 +21,6 @@ import { useTheme } from '../../theme/ThemeContext';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { styles } from './Login.styles';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const LoginScreen: React.FC = () => {
   const { login, isLoading, navigate } = useAuth();
   const { colors, isDark } = useTheme();
