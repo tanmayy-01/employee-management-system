@@ -20,7 +20,8 @@ export type ScreenName =
   | 'Attendance'
   | 'Profile'
   | 'Settings'
-  | 'Notifications';
+  | 'Notifications'
+  | 'EditProfile';
 
 export interface AuthContextType {
   user: User | null;

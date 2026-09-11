@@ -32,11 +32,7 @@ export const ProfileScreen: React.FC = () => {
         'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
 
     const handleEditProfile = () => {
-        Alert.alert(
-            'Edit Profile',
-            'Profile editing is enabled. You can update your contact information and display photo.',
-            [{ text: 'OK' }]
-        );
+        navigate('EditProfile');
     };
 
     const handleLogout = () => {

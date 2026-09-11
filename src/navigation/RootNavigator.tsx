@@ -13,6 +13,7 @@ import {
   SettingsScreen,
   NotificationsScreen,
   ProfileScreen,
+  EditProfileScreen,
 } from '../screens';
 
 export const RootNavigator: React.FC = () => {
@@ -49,6 +50,8 @@ export const RootNavigator: React.FC = () => {
         return <DashboardScreen />;
       case 'Profile':
         return <ProfileScreen />;
+      case 'EditProfile':
+        return <EditProfileScreen />;
       case 'Settings':
         return <SettingsScreen />;
       case 'Notifications':
