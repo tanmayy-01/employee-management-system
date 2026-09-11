@@ -46,19 +46,8 @@ const ForgotPasswordScreen: React.FC = () => {
 
     try {
       // Simulate API call to request OTP
-      await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-      Alert.alert(
-        'OTP Sent Successfully',
-        `A 6-digit One-Time Password has been sent to ${trimmedEmail}.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Could navigate to OTP verification screen or return to Login
-            },
-          },
-        ]
-      );
+      await new Promise<void>((resolve) => setTimeout(resolve, 800));
+      navigate('OtpVerification');
     } catch {
       setErrorMessage('Failed to send OTP. Please try again.');
     } finally {

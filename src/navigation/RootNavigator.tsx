@@ -1,7 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Animated } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { SplashScreen, LoginScreen, ForgotPasswordScreen } from '../screens';
+import {
+  SplashScreen,
+  LoginScreen,
+  ForgotPasswordScreen,
+  OtpVerificationScreen,
+  ResetPasswordScreen,
+  SignUpScreen,
+} from '../screens';
 
 export const RootNavigator: React.FC = () => {
   const { currentScreen, navigate } = useAuth();
@@ -25,6 +32,12 @@ export const RootNavigator: React.FC = () => {
         return <LoginScreen />;
       case 'ForgotPassword':
         return <ForgotPasswordScreen />;
+      case 'OtpVerification':
+        return <OtpVerificationScreen />;
+      case 'ResetPassword':
+        return <ResetPasswordScreen />;
+      case 'SignUp':
+        return <SignUpScreen />;
       default:
         return <LoginScreen />;
     }

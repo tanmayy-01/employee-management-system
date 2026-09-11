@@ -52,7 +52,7 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleSignUp = () => {
-    //
+    navigate('SignUp');
   };
 
   return (

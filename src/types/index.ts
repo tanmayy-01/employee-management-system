@@ -8,7 +8,14 @@ export interface User {
   avatarUrl?: string;
 }
 
-export type ScreenName = 'Splash' | 'Login' | 'ForgotPassword' | 'Home';
+export type ScreenName =
+  | 'Splash'
+  | 'Login'
+  | 'ForgotPassword'
+  | 'OtpVerification'
+  | 'ResetPassword'
+  | 'SignUp'
+  | 'Home';
 
 export interface AuthContextType {
   user: User | null;
