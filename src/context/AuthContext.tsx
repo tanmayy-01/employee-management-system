@@ -5,11 +5,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const DEMO_USER: User = {
   id: 'usr_101',
-  name: 'Tanmay Sharma',
-  email: 'tanmay.sharma@workpulse.io',
-  employeeId: 'EMP-2048',
+  name: 'Alex Rivera',
+  email: 'alex.rivera@workpulse.io',
+  employeeId: 'EMP-8492',
   role: 'Senior Software Engineer',
   department: 'Product & Engineering',
+  avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -34,7 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       setUser(loggedUser);
-      setCurrentScreen('Home');
+      setCurrentScreen('Dashboard');
       return true;
     } catch {
       return false;

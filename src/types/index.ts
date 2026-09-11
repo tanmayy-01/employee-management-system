@@ -15,7 +15,11 @@ export type ScreenName =
   | 'OtpVerification'
   | 'ResetPassword'
   | 'SignUp'
-  | 'Home';
+  | 'Home'
+  | 'Dashboard'
+  | 'Attendance'
+  | 'Profile'
+  | 'Settings';
 
 export interface AuthContextType {
   user: User | null;

@@ -8,6 +8,7 @@ import {
   OtpVerificationScreen,
   ResetPasswordScreen,
   SignUpScreen,
+  DashboardScreen,
 } from '../screens';
 
 export const RootNavigator: React.FC = () => {
@@ -38,6 +39,9 @@ export const RootNavigator: React.FC = () => {
         return <ResetPasswordScreen />;
       case 'SignUp':
         return <SignUpScreen />;
+      case 'Dashboard':
+      case 'Home':
+        return <DashboardScreen />;
       default:
         return <LoginScreen />;
     }
