@@ -16,7 +16,7 @@ import { CheckInOutCard } from '../../components/CheckInOutCard';
 import { BottomTabBar } from '../../components/BottomTabBar';
 
 const DashboardScreen: React.FC = () => {
-    const { user } = useAuth();
+    const { user, navigate } = useAuth();
     const { colors, isDark } = useTheme();
     const [isCheckedIn, setIsCheckedIn] = useState(false);
 
@@ -70,6 +70,7 @@ const DashboardScreen: React.FC = () => {
                             shadowColor: colors.shadowColor,
                         },
                     ]}
+                    onPress={() => navigate('Notifications')}
                     activeOpacity={0.7}
                 >
                     <Ionicons name="notifications-outline" size={22} color={colors.primary} />

@@ -11,6 +11,7 @@ import {
   SignUpScreen,
   DashboardScreen,
   SettingsScreen,
+  NotificationsScreen,
 } from '../screens';
 
 export const RootNavigator: React.FC = () => {
@@ -47,6 +48,8 @@ export const RootNavigator: React.FC = () => {
         return <DashboardScreen />;
       case 'Settings':
         return <SettingsScreen />;
+      case 'Notifications':
+        return <NotificationsScreen />;
       default:
         return <LoginScreen />;
     }

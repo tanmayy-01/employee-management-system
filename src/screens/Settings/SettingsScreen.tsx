@@ -88,6 +88,7 @@ const SettingsScreen: React.FC = () => {
                             shadowColor: colors.shadowColor,
                         },
                     ]}
+                    onPress={() => navigate('Notifications')}
                     activeOpacity={0.7}
                 >
                     <Ionicons name="notifications-outline" size={22} color={colors.primary} />

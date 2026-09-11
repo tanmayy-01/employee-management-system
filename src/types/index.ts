@@ -19,7 +19,8 @@ export type ScreenName =
   | 'Dashboard'
   | 'Attendance'
   | 'Profile'
-  | 'Settings';
+  | 'Settings'
+  | 'Notifications';
 
 export interface AuthContextType {
   user: User | null;
