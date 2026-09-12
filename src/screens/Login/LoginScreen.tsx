@@ -4,15 +4,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   StatusBar,
   Image,
-  Dimensions,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,39 +19,58 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { styles } from './Login.styles';
 
 const LoginScreen: React.FC = () => {
-  const { login, isLoading, navigate } = useAuth();
+  const { login, isLoading, navigate, authError, clearAuthError } = useAuth();
   const { colors, isDark } = useTheme();
 
-  const [email, setEmail] = useState('demo@workpulse.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const validateEmail = (inputEmail: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(inputEmail.trim());
+  };
+
   const handleLogin = async () => {
-    if (!email.trim()) {
-      setErrorMessage('Please enter your email');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setErrorMessage('Please enter your work email address');
       return;
     }
-    if (!password.trim()) {
+
+    if (!validateEmail(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address (e.g., alex@workpulse.io)');
+      return;
+    }
+
+    if (!password) {
       setErrorMessage('Please enter your password');
       return;
     }
 
     setErrorMessage('');
-    const success = await login(email, password);
+    clearAuthError();
+
+    const success = await login(trimmedEmail, password, rememberMe);
     if (!success) {
-      setErrorMessage('Invalid credentials. Please try again.');
+      // If login failed, the error is handled and presented in the error box
+      setErrorMessage(authError || 'Wrong Credential');
     }
   };
 
   const handleForgotPassword = () => {
+    clearAuthError();
     navigate('ForgotPassword');
   };
 
   const handleSignUp = () => {
+    clearAuthError();
     navigate('SignUp');
   };
+
+  const displayedError = errorMessage || authError;
 
   return (
     <SafeAreaView
@@ -97,7 +113,7 @@ const LoginScreen: React.FC = () => {
             </Text>
 
             {/* Error Message */}
-            {errorMessage ? (
+            {displayedError ? (
               <View
                 style={[
                   styles.errorBox,
@@ -107,13 +123,21 @@ const LoginScreen: React.FC = () => {
                   },
                 ]}
               >
-                <Text style={[styles.errorText, { color: colors.error }]}>{errorMessage}</Text>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={16}
+                  color={colors.error}
+                  style={{ marginRight: 6, marginTop: 1 }}
+                />
+                <Text style={[styles.errorText, { color: colors.error, flex: 1 }]}>
+                  {displayedError}
+                </Text>
               </View>
             ) : null}
 
             {/* Email Field */}
             <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: colors.textPrimary }]}>Email</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>Work Email</Text>
               <View
                 style={[
                   styles.inputContainer,
@@ -131,12 +155,15 @@ const LoginScreen: React.FC = () => {
                 />
                 <TextInput
                   style={[styles.input, { color: colors.inputText }]}
-                  placeholder="demo@workpulse.com"
+                  placeholder="alex@workpulse.io"
                   placeholderTextColor={colors.inputPlaceholder}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
-                    if (errorMessage) setErrorMessage('');
+                    if (errorMessage || authError) {
+                      setErrorMessage('');
+                      clearAuthError();
+                    }
                   }}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -165,12 +192,15 @@ const LoginScreen: React.FC = () => {
                 />
                 <TextInput
                   style={[styles.input, { color: colors.inputText }]}
-                  placeholder="password123"
+                  placeholder="••••••••"
                   placeholderTextColor={colors.inputPlaceholder}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
-                    if (errorMessage) setErrorMessage('');
+                    if (errorMessage || authError) {
+                      setErrorMessage('');
+                      clearAuthError();
+                    }
                   }}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -261,7 +291,5 @@ const LoginScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-
 
 export default LoginScreen;

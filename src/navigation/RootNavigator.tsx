@@ -21,7 +21,7 @@ import {
 
 
 export const RootNavigator: React.FC = () => {
-  const { currentScreen, navigate, goBack } = useAuth();
+  const { currentScreen, navigate, goBack, isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const screenFadeAnim = useRef(new Animated.Value(1)).current;
   const lastBackPressTime = useRef<number>(0);
@@ -76,7 +76,12 @@ export const RootNavigator: React.FC = () => {
   const renderCurrentScreen = () => {
     switch (currentScreen) {
       case 'Splash':
-        return <SplashScreen onFinish={() => navigate('Login')} duration={2500} />;
+        return (
+          <SplashScreen
+            onFinish={() => navigate(isAuthenticated ? 'Dashboard' : 'Login')}
+            duration={2200}
+          />
+        );
       case 'Login':
         return <LoginScreen />;
       case 'ForgotPassword':

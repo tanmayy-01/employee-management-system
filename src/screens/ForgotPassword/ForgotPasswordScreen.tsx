@@ -20,7 +20,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { styles } from './ForgotPassword.styles';
 
 const ForgotPasswordScreen: React.FC = () => {
-    const { navigate } = useAuth();
+    const { navigate, sendPasswordReset, authError, clearAuthError } = useAuth();
     const { colors, isDark } = useTheme();
 
     const [email, setEmail] = useState('');
@@ -45,14 +45,14 @@ const ForgotPasswordScreen: React.FC = () => {
         }
 
         setErrorMessage('');
+        clearAuthError();
         setIsLoading(true);
 
         try {
-            // Simulate API call to request OTP
-            await new Promise<void>((resolve) => setTimeout(resolve, 800));
+            await sendPasswordReset(trimmedEmail);
             navigate('OtpVerification');
-        } catch {
-            setErrorMessage('Failed to send OTP. Please try again.');
+        } catch (error: any) {
+            setErrorMessage(error.message || 'Failed to send OTP. Please try again.');
         } finally {
             setIsLoading(false);
         }

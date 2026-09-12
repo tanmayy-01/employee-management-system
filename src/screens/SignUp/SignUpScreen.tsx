@@ -19,7 +19,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { styles } from './SignUp.styles';
 
 const SignUpScreen: React.FC = () => {
-    const { navigate } = useAuth();
+    const { navigate, signUp, authError, clearAuthError } = useAuth();
     const { colors, isDark } = useTheme();
 
     const [fullName, setFullName] = useState('');
@@ -61,8 +61,8 @@ const SignUpScreen: React.FC = () => {
             setErrorMessage('Please enter a password');
             return;
         }
-        if (password.length < 8) {
-            setErrorMessage('Password must be at least 8 characters long');
+        if (password.length < 6) {
+            setErrorMessage('Password must be at least 6 characters long');
             return;
         }
         if (!confirmPassword) {
@@ -79,14 +79,24 @@ const SignUpScreen: React.FC = () => {
         }
 
         setErrorMessage('');
+        clearAuthError();
         setIsLoading(true);
 
         try {
-            // Simulate registration delay
-            await new Promise<void>((resolve) => setTimeout(resolve, 800));
-            setIsSuccess(true);
-        } catch {
-            setErrorMessage('Registration failed. Please try again.');
+            const success = await signUp({
+                fullName: fullName.trim(),
+                email: workEmail.trim(),
+                employeeId: employeeId.trim(),
+                password,
+            });
+
+            if (success) {
+                setIsSuccess(true);
+            } else {
+                setErrorMessage(authError || 'Registration failed. Please try again.');
+            }
+        } catch (err: any) {
+            setErrorMessage(err.message || 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }

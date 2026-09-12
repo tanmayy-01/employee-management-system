@@ -18,7 +18,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { styles } from './ChangePassword.styles';
 
 export const ChangePasswordScreen: React.FC = () => {
-  const { navigate, goBack } = useAuth();
+  const { navigate, goBack, changePassword, authError, clearAuthError } = useAuth();
   const { colors, isDark } = useTheme();
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -61,30 +61,37 @@ export const ChangePasswordScreen: React.FC = () => {
     }
 
     setErrorMessage('');
+    clearAuthError();
     setIsLoading(true);
 
     try {
-      // Simulate password update process
-      await new Promise<void>((resolve) => setTimeout(resolve, 900));
+      const success = await changePassword(currentPassword, newPassword);
 
-      Alert.alert(
-        'Password Updated',
-        'Your password has been changed successfully. Please use your new password next time you log in.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (goBack) {
-                goBack();
-              } else {
-                navigate('Settings');
-              }
+      if (success) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        Alert.alert(
+          'Password Updated',
+          'Your password has been changed successfully. Please use your new password next time you log in.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (goBack) {
+                  goBack();
+                } else {
+                  navigate('Settings');
+                }
+              },
             },
-          },
-        ]
-      );
-    } catch {
-      setErrorMessage('Failed to update password. Please try again.');
+          ]
+        );
+      } else {
+        setErrorMessage(authError || 'Failed to update password. Please check your current password.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to update password. Please try again.');
     } finally {
       setIsLoading(false);
     }
