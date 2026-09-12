@@ -13,6 +13,7 @@ import {
   Auth,
 } from '@react-native-firebase/auth';
 import { databaseService } from './database.service';
+import { employeeService } from './employee.service';
 import { AuthSession, SignUpPayload, User } from '../types';
 
 // Session expiration settings
@@ -133,18 +134,53 @@ class FirebaseAuthService {
         }
       } catch (tokenErr) {
         console.warn('getIdTokenResult notice during signIn:', tokenErr);
-        idToken = await (fbUser as any).getIdToken?.() || 'firebase_token_' + Date.now();
+        idToken = (await (fbUser as any).getIdToken?.()) || 'firebase_token_' + Date.now();
       }
+
+      // Check for saved persistent record in employees table (and user_profiles fallback)
+      const existingEmployee =
+        (await employeeService.getEmployeeById(fbUser.uid)) ||
+        (await employeeService.getEmployeeByEmail(fbUser.email || email));
+      const existingProfile = existingEmployee || (await databaseService.getUserProfile(fbUser.uid));
+
+      const defaultJoinDate = new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
 
       const user: User = {
         id: fbUser.uid,
-        name: fbUser.displayName || email.split('@')[0] || 'Employee',
+        name: fbUser.displayName || existingProfile?.name || email.split('@')[0] || 'Employee',
         email: fbUser.email || email,
-        employeeId: 'EMP-' + fbUser.uid.substring(0, 4).toUpperCase(),
-        role: 'Employee',
-        department: 'General',
-        avatarUrl: fbUser.photoURL || undefined,
+        employeeId:
+          existingProfile?.employeeId ||
+          'EMP-' + fbUser.uid.substring(0, 4).toUpperCase(),
+        role: existingProfile?.role || 'Employee',
+        department: existingProfile?.department || 'General',
+        avatarUrl: fbUser.photoURL || existingProfile?.avatarUrl || undefined,
+        phone: existingProfile?.phone || '',
+        location: existingProfile?.location || 'Headquarters',
+        joinDate: existingProfile?.joinDate || defaultJoinDate,
       };
+
+      // Ensure employee record exists in SQLite employees table
+      if (!existingEmployee) {
+        await employeeService.createEmployee({
+          id: user.id,
+          employeeId: user.employeeId,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          phone: user.phone,
+          location: user.location,
+          joinDate: user.joinDate,
+          avatarUrl: user.avatarUrl,
+        });
+      }
+
+      await databaseService.saveUserProfile(user);
 
       const session: AuthSession = {
         userId: user.id,
@@ -154,6 +190,9 @@ class FirebaseAuthService {
         role: user.role,
         department: user.department,
         avatarUrl: user.avatarUrl,
+        phone: user.phone,
+        location: user.location,
+        joinDate: user.joinDate,
         idToken,
         issuedAt,
         expiresAt,
@@ -175,7 +214,7 @@ class FirebaseAuthService {
   }
 
   /**
-   * Register new user with Firebase Auth and save session to SQLite
+   * Register new user with Firebase Auth and save employee record to SQLite employees table
    */
   public async signUp(
     payload: SignUpPayload
@@ -230,6 +269,12 @@ class FirebaseAuthService {
         idToken = (await (fbUser as any).getIdToken?.()) || 'firebase_token_' + Date.now();
       }
 
+      const joinDateStr = new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
       const user: User = {
         id: fbUser.uid,
         name: payload.fullName || fbUser.displayName || 'Employee',
@@ -238,7 +283,27 @@ class FirebaseAuthService {
         role: payload.role || 'Employee',
         department: payload.department || 'General',
         avatarUrl: fbUser.photoURL || undefined,
+        phone: payload.phone || '',
+        location: payload.location || 'Headquarters',
+        joinDate: joinDateStr,
       };
+
+      // 1. Create and persist record in employees table
+      await employeeService.createEmployee({
+        id: user.id,
+        employeeId: user.employeeId,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        phone: user.phone,
+        location: user.location,
+        joinDate: user.joinDate,
+        avatarUrl: user.avatarUrl,
+      });
+
+      // 2. Save user profile to persistent SQLite storage
+      await databaseService.saveUserProfile(user);
 
       const session: AuthSession = {
         userId: user.id,
@@ -248,6 +313,9 @@ class FirebaseAuthService {
         role: user.role,
         department: user.department,
         avatarUrl: user.avatarUrl,
+        phone: user.phone,
+        location: user.location,
+        joinDate: user.joinDate,
         idToken,
         issuedAt,
         expiresAt,
@@ -322,6 +390,106 @@ class FirebaseAuthService {
       if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
         throw new Error('Current password is incorrect. Please verify and try again.');
       }
+      throw new Error(this.getFriendlyErrorMessage(error));
+    }
+  }
+
+  /**
+   * Retrieve profile for current or specified user from SQLite employees table and Firebase
+   */
+  public async getUserProfile(userId?: string): Promise<User | null> {
+    const currentUser = this.getCurrentUser();
+    const targetUid = userId || currentUser?.uid;
+    if (!targetUid) return null;
+
+    const dbEmployee =
+      (await employeeService.getEmployeeById(targetUid)) ||
+      (await databaseService.getUserProfile(targetUid));
+
+    if (dbEmployee) {
+      if (currentUser && currentUser.uid === targetUid) {
+        if (currentUser.displayName && currentUser.displayName !== dbEmployee.name) {
+          dbEmployee.name = currentUser.displayName;
+        }
+        if (currentUser.photoURL && currentUser.photoURL !== dbEmployee.avatarUrl) {
+          dbEmployee.avatarUrl = currentUser.photoURL;
+        }
+      }
+      return dbEmployee;
+    }
+
+    if (currentUser && currentUser.uid === targetUid) {
+      const user: User = {
+        id: currentUser.uid,
+        name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Employee',
+        email: currentUser.email || '',
+        employeeId: 'EMP-' + currentUser.uid.substring(0, 4).toUpperCase(),
+        role: 'Employee',
+        department: 'General',
+        avatarUrl: currentUser.photoURL || undefined,
+        phone: '',
+        location: 'Headquarters',
+        joinDate: new Date().toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+      };
+      await employeeService.createEmployee({
+        id: user.id,
+        employeeId: user.employeeId,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        phone: user.phone,
+        location: user.location,
+        joinDate: user.joinDate,
+        avatarUrl: user.avatarUrl,
+      });
+      await databaseService.saveUserProfile(user);
+      return user;
+    }
+
+    return null;
+  }
+
+  /**
+   * Update profile data for the current authenticated user
+   */
+  public async updateUserProfile(updates: Partial<User>): Promise<User> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      throw new Error('No authenticated user session found.');
+    }
+
+    try {
+      // If name or avatar changed, sync with Firebase Auth profile
+      if (updates.name !== undefined || updates.avatarUrl !== undefined) {
+        const profileUpdatePayload: { displayName?: string; photoURL?: string } = {};
+        if (updates.name !== undefined) {
+          profileUpdatePayload.displayName = updates.name.trim();
+        }
+        if (updates.avatarUrl !== undefined) {
+          profileUpdatePayload.photoURL = updates.avatarUrl;
+        }
+
+        try {
+          if (typeof (currentUser as any).updateProfile === 'function') {
+            await (currentUser as any).updateProfile(profileUpdatePayload);
+          } else {
+            await updateProfile(currentUser, profileUpdatePayload);
+          }
+        } catch (profileErr) {
+          console.warn('Firebase updateProfile notice:', profileErr);
+        }
+      }
+
+      // Update SQLite persistent employees table and session
+      await employeeService.updateEmployee(currentUser.uid, updates);
+      const updatedUser = await databaseService.updateUserProfile(currentUser.uid, updates);
+      return updatedUser;
+    } catch (error: any) {
       throw new Error(this.getFriendlyErrorMessage(error));
     }
   }

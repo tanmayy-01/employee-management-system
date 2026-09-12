@@ -6,6 +6,24 @@ export interface User {
   role: string;
   department: string;
   avatarUrl?: string;
+  phone?: string;
+  location?: string;
+  joinDate?: string;
+}
+
+export interface Employee {
+  id: string;
+  employeeId: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  phone?: string;
+  location?: string;
+  joinDate?: string;
+  avatarUrl?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 export interface AuthSession {
@@ -16,6 +34,9 @@ export interface AuthSession {
   role: string;
   department: string;
   avatarUrl?: string;
+  phone?: string;
+  location?: string;
+  joinDate?: string;
   idToken: string;
   refreshToken?: string;
   issuedAt: number;
@@ -32,6 +53,8 @@ export interface SignUpPayload {
   password: string;
   department?: string;
   role?: string;
+  phone?: string;
+  location?: string;
 }
 
 export type ScreenName =
@@ -65,6 +88,8 @@ export interface AuthContextType {
   signUp: (payload: SignUpPayload) => Promise<boolean>;
   sendPasswordReset: (email: string) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  updateUserProfile: (data: Partial<User>) => Promise<boolean>;
+  reloadUserProfile: () => Promise<User | null>;
   logout: (reason?: string) => Promise<void>;
   refreshSessionToken: () => Promise<string | null>;
   checkSessionValidity: () => Promise<boolean>;

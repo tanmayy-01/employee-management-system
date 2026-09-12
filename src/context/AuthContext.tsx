@@ -176,14 +176,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const sessionStatus = firebaseAuthService.checkSessionExpiry(cachedSession);
 
         if (sessionStatus.isValid) {
+          const dbProfile = await databaseService.getUserProfile(cachedSession.userId);
           const restoredUser: User = {
             id: cachedSession.userId,
-            name: cachedSession.name,
-            email: cachedSession.email,
-            employeeId: cachedSession.employeeId,
-            role: cachedSession.role,
-            department: cachedSession.department,
-            avatarUrl: cachedSession.avatarUrl,
+            name: dbProfile?.name || cachedSession.name,
+            email: dbProfile?.email || cachedSession.email,
+            employeeId: dbProfile?.employeeId || cachedSession.employeeId,
+            role: dbProfile?.role || cachedSession.role,
+            department: dbProfile?.department || cachedSession.department,
+            avatarUrl: dbProfile?.avatarUrl || cachedSession.avatarUrl,
+            phone: dbProfile?.phone || cachedSession.phone || '',
+            location: dbProfile?.location || cachedSession.location || 'Headquarters',
+            joinDate: dbProfile?.joinDate || cachedSession.joinDate || '',
           };
 
           setUser(restoredUser);
@@ -215,7 +219,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ? new Date(tokenResult.expirationTime).getTime()
             : now + 3600 * 1000;
 
-          const restoredUser: User = {
+          const dbProfile = await firebaseAuthService.getUserProfile(currentFbUser.uid);
+          const restoredUser: User = dbProfile || {
             id: currentFbUser.uid,
             name: currentFbUser.displayName || currentFbUser.email?.split('@')[0] || 'Employee',
             email: currentFbUser.email || '',
@@ -223,6 +228,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: 'Employee',
             department: 'General',
             avatarUrl: currentFbUser.photoURL || undefined,
+            phone: '',
+            location: 'Headquarters',
+            joinDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
           };
 
           const newSession: AuthSession = {
@@ -233,6 +241,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: restoredUser.role,
             department: restoredUser.department,
             avatarUrl: restoredUser.avatarUrl,
+            phone: restoredUser.phone,
+            location: restoredUser.location,
+            joinDate: restoredUser.joinDate,
             idToken: tokenResult.token,
             issuedAt: now,
             expiresAt,
@@ -414,6 +425,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  /**
+   * Update User Profile
+   */
+  const updateUserProfile = async (data: Partial<User>): Promise<boolean> => {
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      const updated = await firebaseAuthService.updateUserProfile(data);
+      setUser(updated);
+      const activeSession = await databaseService.getActiveAuthSession();
+      if (activeSession) {
+        setSession(activeSession);
+      }
+      return true;
+    } catch (error: any) {
+      const errorMsg = error.message || 'Failed to update profile.';
+      setAuthError(errorMsg);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Reload User Profile from storage
+   */
+  const reloadUserProfile = async (): Promise<User | null> => {
+    try {
+      const profile = await firebaseAuthService.getUserProfile();
+      if (profile) {
+        setUser(profile);
+      }
+      return profile;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -430,6 +480,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signUp,
         sendPasswordReset,
         changePassword,
+        updateUserProfile,
+        reloadUserProfile,
         logout,
         refreshSessionToken,
         checkSessionValidity,

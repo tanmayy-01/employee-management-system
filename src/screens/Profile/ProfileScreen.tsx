@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -8,29 +8,60 @@ import {
     ScrollView,
     TouchableOpacity,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { BottomTabBar } from '../../components/BottomTabBar';
+import { employeeService } from '../../services/employee.service';
+import { Employee } from '../../types';
 import { styles } from './Profile.styles';
 
 export const ProfileScreen: React.FC = () => {
     const { user, logout, navigate } = useAuth();
     const { colors, isDark } = useTheme();
 
-    const userName = user?.name || 'Alex Mercer';
-    const userRole = user?.role || 'Senior UX Designer';
-    const userEmail = user?.email || 'alex.mercer@workpulse.co';
-    const userPhone = '+1 (555) 123-4567';
-    const userEmpId = user?.employeeId || 'WP-2023-089';
-    const userDepartment = user?.department || 'Product Team';
-    const userLocation = 'New York HQ';
-    const userJoinDate = 'March 15, 2021';
+    const [employee, setEmployee] = useState<Employee | null>(null);
+    const [isLoadingEmployee, setIsLoadingEmployee] = useState<boolean>(false);
+
+    const loadEmployeeData = useCallback(async () => {
+        if (!user?.id && !user?.email) return;
+        setIsLoadingEmployee(true);
+        try {
+            const data =
+                (user?.id ? await employeeService.getEmployeeById(user.id) : null) ||
+                (user?.email ? await employeeService.getEmployeeByEmail(user.email) : null);
+            if (data) {
+                setEmployee(data);
+            }
+        } catch (error) {
+            console.warn('Failed to load employee from database table:', error);
+        } finally {
+            setIsLoadingEmployee(false);
+        }
+    }, [user?.id, user?.email]);
+
+    useEffect(() => {
+        loadEmployeeData();
+    }, [loadEmployeeData, user]);
+
+    const userName = employee?.name || user?.name || 'Employee';
+    const userRole = employee?.role || user?.role || 'Team Member';
+    const userEmail = employee?.email || user?.email || '';
+    const userPhone = employee?.phone ? employee.phone : user?.phone ? user.phone : 'Not provided';
+    const userEmpId =
+        employee?.employeeId ||
+        user?.employeeId ||
+        (user?.id ? 'EMP-' + user.id.substring(0, 4).toUpperCase() : 'N/A');
+    const userDepartment = employee?.department || user?.department || 'General';
+    const userLocation = employee?.location || user?.location || 'Headquarters';
+    const userJoinDate = employee?.joinDate || user?.joinDate || 'Active';
     const avatarUrl =
+        employee?.avatarUrl ||
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
 
     const handleEditProfile = () => {
         navigate('EditProfile');

@@ -3,7 +3,6 @@ import {
     View,
     Text,
     TextInput,
-    StyleSheet,
     StatusBar,
     Image,
     ScrollView,
@@ -17,23 +16,44 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
+import { employeeService } from '../../services/employee.service';
 import { styles } from './EditProfile.styles';
 
 export const EditProfileScreen: React.FC = () => {
-    const { user, navigate } = useAuth();
+    const { user, navigate, updateUserProfile, authError, clearAuthError } = useAuth();
     const { colors, isDark } = useTheme();
 
-    const [fullName, setFullName] = useState(user?.name || 'Sarah Jenkins');
-    const [email, setEmail] = useState(user?.email || 'sarah.j@workpulse.co');
-    const [phone, setPhone] = useState('+1 (555) 019-2834');
-    const roleAndDepartment = `${user?.role || 'Senior Product Designer'}, ${user?.department || 'Design'}`;
+    const [fullName, setFullName] = useState(user?.name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const roleAndDepartment = `${user?.role || 'Employee'}, ${user?.department || 'General'}`;
     const [avatarUrl, setAvatarUrl] = useState(
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80'
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
     );
 
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+
+    React.useEffect(() => {
+        const loadEmployeeDetails = async () => {
+            if (!user?.id && !user?.email) return;
+            try {
+                const emp =
+                    (user?.id ? await employeeService.getEmployeeById(user.id) : null) ||
+                    (user?.email ? await employeeService.getEmployeeByEmail(user.email) : null);
+                if (emp) {
+                    if (emp.name) setFullName(emp.name);
+                    if (emp.email) setEmail(emp.email);
+                    if (emp.phone) setPhone(emp.phone);
+                    if (emp.avatarUrl) setAvatarUrl(emp.avatarUrl);
+                }
+            } catch (e) {
+                console.warn('Failed to load employee details in EditProfile:', e);
+            }
+        };
+        loadEmployeeDetails();
+    }, [user]);
 
     const handleChangePhoto = () => {
         Alert.alert(
@@ -62,30 +82,34 @@ export const EditProfileScreen: React.FC = () => {
             setErrorMessage('Please enter your full name');
             return;
         }
-        if (!email.trim()) {
-            setErrorMessage('Please enter your email address');
-            return;
-        }
 
         setErrorMessage('');
+        clearAuthError();
         setIsLoading(true);
 
         try {
-            // Simulate API update request
-            await new Promise<void>((resolve) => setTimeout(resolve, 600));
+            const success = await updateUserProfile({
+                name: fullName.trim(),
+                phone: phone.trim(),
+                avatarUrl,
+            });
 
-            Alert.alert(
-                'Profile Updated',
-                'Your profile details have been successfully updated.',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => navigate('Profile'),
-                    },
-                ]
-            );
-        } catch {
-            setErrorMessage('Failed to update profile. Please try again.');
+            if (success) {
+                Alert.alert(
+                    'Profile Updated',
+                    'Your profile details have been successfully updated.',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => navigate('Profile'),
+                        },
+                    ]
+                );
+            } else {
+                setErrorMessage(authError || 'Failed to update profile. Please try again.');
+            }
+        } catch (err: any) {
+            setErrorMessage(err?.message || 'Failed to update profile. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -219,7 +243,7 @@ export const EditProfileScreen: React.FC = () => {
                             </View>
                         </View>
 
-                        {/* Field 2: Email Address */}
+                        {/* Field 2: Email Address (Read-only / Managed by Auth) */}
                         <View style={styles.fieldGroup}>
                             <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                                 Email Address
@@ -227,9 +251,10 @@ export const EditProfileScreen: React.FC = () => {
                             <View
                                 style={[
                                     styles.inputContainer,
+                                    styles.inputDisabled,
                                     {
-                                        backgroundColor: isDark ? colors.inputBackground : '#F8FAFC',
-                                        borderColor: colors.inputBorder,
+                                        backgroundColor: isDark ? colors.inputBackground : '#F1F5F9',
+                                        borderColor: isDark ? colors.inputBorder : '#E2E8F0',
                                     },
                                 ]}
                             >
@@ -240,20 +265,17 @@ export const EditProfileScreen: React.FC = () => {
                                     style={styles.inputIcon}
                                 />
                                 <TextInput
-                                    style={[styles.input, { color: colors.inputText }]}
+                                    style={[styles.input, { color: isDark ? colors.textSecondary : '#64748B' }]}
                                     value={email}
-                                    onChangeText={(text) => {
-                                        setEmail(text);
-                                        if (errorMessage) setErrorMessage('');
-                                    }}
-                                    placeholder="sarah.j@workpulse.co"
+                                    editable={false}
+                                    placeholder="user@workpulse.co"
                                     placeholderTextColor={colors.inputPlaceholder}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                 />
                             </View>
                             <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-                                This email is used for login and notifications.
+                                Email address is linked to your WorkPulse account.
                             </Text>
                         </View>
 
