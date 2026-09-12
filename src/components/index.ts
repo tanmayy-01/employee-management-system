@@ -1,2 +1,4 @@
 export * from './CheckInOutCard';
 export * from './BottomTabBar';
+export * from './AttendanceHistory';
+

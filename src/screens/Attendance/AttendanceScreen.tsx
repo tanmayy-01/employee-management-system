@@ -6,7 +6,6 @@ import {
     Image,
     ScrollView,
     TouchableOpacity,
-    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -50,12 +49,8 @@ export const AttendanceScreen: React.FC = () => {
         user?.avatarUrl ||
         'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
 
-    const handleViewAll = () => {
-        Alert.alert(
-            'Attendance History',
-            'Full attendance history and monthly time logs are available in your WorkPulse portal.',
-            [{ text: 'OK' }]
-        );
+    const handleNavigateToHistory = () => {
+        navigate('AttendanceHistory');
     };
 
     return (
@@ -114,16 +109,72 @@ export const AttendanceScreen: React.FC = () => {
                     onCheckOut={() => setIsCheckedIn(false)}
                 />
 
+                {/* Attendance History Quick Link Banner Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.historyBannerButton,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.cardBorder,
+                        },
+                    ]}
+                    onPress={handleNavigateToHistory}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.historyBannerLeft}>
+                        <View
+                            style={[
+                                styles.historyBannerIconWrapper,
+                                {
+                                    backgroundColor: isDark
+                                        ? 'rgba(59, 130, 246, 0.15)'
+                                        : '#EBF2FF',
+                                },
+                            ]}
+                        >
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                        </View>
+                        <View style={styles.historyBannerTexts}>
+                            <Text
+                                style={[
+                                    styles.historyBannerTitle,
+                                    { color: colors.textPrimary },
+                                ]}
+                            >
+                                Attendance History
+                            </Text>
+                            <Text
+                                style={[
+                                    styles.historyBannerSubtitle,
+                                    { color: colors.textSecondary },
+                                ]}
+                            >
+                                View daily check-ins, logs & locations
+                            </Text>
+                        </View>
+                    </View>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? colors.textTertiary : '#94A3B8'}
+                    />
+                </TouchableOpacity>
+
                 {/* Recent Activity Section */}
                 <View style={styles.recentSection}>
                     <View style={styles.recentHeaderRow}>
                         <Text style={[styles.recentTitle, { color: colors.textPrimary }]}>
                             Recent Activity
                         </Text>
-                        <TouchableOpacity onPress={handleViewAll} activeOpacity={0.7}>
+                        <TouchableOpacity
+                            style={styles.viewAllButton}
+                            onPress={handleNavigateToHistory}
+                            activeOpacity={0.7}
+                        >
                             <Text style={[styles.viewAllText, { color: colors.primary }]}>
                                 View All
                             </Text>
+                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
                         </TouchableOpacity>
                     </View>
 
@@ -206,6 +257,5 @@ export const AttendanceScreen: React.FC = () => {
         </SafeAreaView>
     );
 };
-
 
 export default AttendanceScreen;

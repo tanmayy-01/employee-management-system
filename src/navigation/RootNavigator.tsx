@@ -15,6 +15,7 @@ import {
   ProfileScreen,
   EditProfileScreen,
   AttendanceScreen,
+  AttendanceHistoryScreen,
   ChangePasswordScreen,
 } from '../screens';
 
@@ -91,6 +92,8 @@ export const RootNavigator: React.FC = () => {
         return <DashboardScreen />;
       case 'Attendance':
         return <AttendanceScreen />;
+      case 'AttendanceHistory':
+        return <AttendanceHistoryScreen />;
       case 'Profile':
         return <ProfileScreen />;
       case 'EditProfile':

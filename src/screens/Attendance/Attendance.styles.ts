@@ -31,7 +31,7 @@ export const styles = StyleSheet.create({
         height: '100%',
     },
     brandTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '800',
         color: '#004AC6',
         letterSpacing: -0.3,
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 24,
+        paddingBottom: 28,
     },
     titleSection: {
         marginTop: 6,
@@ -69,8 +69,48 @@ export const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6B7280',
     },
-    recentSection: {
+    historyBannerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 14,
         marginTop: 14,
+        marginBottom: 4,
+        borderWidth: 1,
+        shadowColor: '#1A2A4E',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 1.5,
+    },
+    historyBannerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    historyBannerIconWrapper: {
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    historyBannerTexts: {
+        flex: 1,
+    },
+    historyBannerTitle: {
+        fontSize: 14.5,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    historyBannerSubtitle: {
+        fontSize: 12,
+    },
+    recentSection: {
+        marginTop: 16,
         marginBottom: 16,
     },
     recentHeaderRow: {
@@ -85,10 +125,17 @@ export const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#111827',
     },
+    viewAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        paddingHorizontal: 6,
+    },
     viewAllText: {
         fontSize: 12.5,
-        fontWeight: '600',
+        fontWeight: '700',
         color: '#004AC6',
+        marginRight: 2,
     },
     activityCard: {
         backgroundColor: '#FFFFFF',

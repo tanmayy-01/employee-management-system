@@ -10,4 +10,5 @@ export * from './Notifications';
 export * from './Profile';
 export * from './EditProfile';
 export * from './Attendance';
-export * from './ChangePassword';
+export * from './AttendanceHistory';
+export * from './ChangePassword';

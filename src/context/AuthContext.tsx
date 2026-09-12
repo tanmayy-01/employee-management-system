@@ -23,6 +23,7 @@ const DEFAULT_PREVIOUS_SCREEN: Record<ScreenName, ScreenName | null> = {
   OtpVerification: 'ForgotPassword',
   ResetPassword: 'Login',
   Attendance: 'Dashboard',
+  AttendanceHistory: 'Attendance',
   Profile: 'Dashboard',
   Settings: 'Dashboard',
   Notifications: 'Dashboard',

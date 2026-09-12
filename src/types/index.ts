@@ -18,6 +18,7 @@ export type ScreenName =
   | 'Home'
   | 'Dashboard'
   | 'Attendance'
+  | 'AttendanceHistory'
   | 'Profile'
   | 'Settings'
   | 'Notifications'
