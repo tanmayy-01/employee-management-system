@@ -20,7 +20,7 @@ import { Employee } from '../../types';
 import { styles } from './Profile.styles';
 
 export const ProfileScreen: React.FC = () => {
-    const { user, logout, navigate } = useAuth();
+    const { user, logout, navigate, currentScreen } = useAuth();
     const { colors, isDark } = useTheme();
 
     const [employee, setEmployee] = useState<Employee | null>(null);
@@ -44,8 +44,10 @@ export const ProfileScreen: React.FC = () => {
     }, [user?.id, user?.email]);
 
     useEffect(() => {
-        loadEmployeeData();
-    }, [loadEmployeeData, user]);
+        if (currentScreen === 'Profile') {
+            loadEmployeeData();
+        }
+    }, [currentScreen, loadEmployeeData, user]);
 
     const userName = employee?.name || user?.name || 'Employee';
     const userRole = employee?.role || user?.role || 'Team Member';
@@ -62,6 +64,7 @@ export const ProfileScreen: React.FC = () => {
         employee?.avatarUrl ||
         user?.avatarUrl ||
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+
 
     const handleEditProfile = () => {
         navigate('EditProfile');

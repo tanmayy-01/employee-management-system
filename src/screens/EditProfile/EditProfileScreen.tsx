@@ -11,13 +11,19 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
+    Modal,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
+import ImagePicker from 'react-native-image-crop-picker';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { employeeService } from '../../services/employee.service';
 import { styles } from './EditProfile.styles';
+
+const DEFAULT_AVATAR =
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
 
 export const EditProfileScreen: React.FC = () => {
     const { user, navigate, updateUserProfile, authError, clearAuthError } = useAuth();
@@ -27,13 +33,11 @@ export const EditProfileScreen: React.FC = () => {
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phone || '');
     const roleAndDepartment = `${user?.role || 'Employee'}, ${user?.department || 'General'}`;
-    const [avatarUrl, setAvatarUrl] = useState(
-        user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
-    );
+    const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || DEFAULT_AVATAR);
 
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [isPhotoModalVisible, setIsPhotoModalVisible] = useState(false);
 
     React.useEffect(() => {
         const loadEmployeeDetails = async () => {
@@ -56,26 +60,72 @@ export const EditProfileScreen: React.FC = () => {
     }, [user]);
 
     const handleChangePhoto = () => {
-        Alert.alert(
-            'Change Photo',
-            'Choose an option to update your profile photo:',
-            [
-                {
-                    text: 'Take Photo',
-                    onPress: () => {
-                        Alert.alert('Camera', 'Camera feature activated.');
-                    },
-                },
-                {
-                    text: 'Choose from Gallery',
-                    onPress: () => {
-                        Alert.alert('Gallery', 'Gallery selection activated.');
-                    },
-                },
-                { text: 'Cancel', style: 'cancel' },
-            ]
-        );
+        setIsPhotoModalVisible(true);
     };
+
+    const handleTakePhoto = () => {
+        setIsPhotoModalVisible(false);
+        setTimeout(async () => {
+            try {
+                const image = await ImagePicker.openCamera({
+                    mediaType: 'photo',
+                    compressImageQuality: 0.8,
+                    cropping: false,
+                    includeBase64: false,
+                });
+                if (image && image.path) {
+                    setAvatarUrl(image.path);
+                }
+            } catch (error: any) {
+                if (
+                    error?.code !== 'E_PICKER_CANCELLED' &&
+                    !error?.message?.includes('User cancelled') &&
+                    !error?.message?.includes('cancelled')
+                ) {
+                    Alert.alert(
+                        'Camera Error',
+                        error?.message || 'Unable to open camera. Please check camera permissions in device settings.'
+                    );
+                }
+            }
+        }, 300);
+    };
+
+    const handleChooseFromGallery = () => {
+        setIsPhotoModalVisible(false);
+        setTimeout(async () => {
+            try {
+                const image = await ImagePicker.openPicker({
+                    mediaType: 'photo',
+                    compressImageQuality: 0.8,
+                    cropping: false,
+                    includeBase64: false,
+                });
+                if (image && image.path) {
+                    setAvatarUrl(image.path);
+                }
+            } catch (error: any) {
+                if (
+                    error?.code !== 'E_PICKER_CANCELLED' &&
+                    !error?.message?.includes('User cancelled') &&
+                    !error?.message?.includes('cancelled')
+                ) {
+                    Alert.alert(
+                        'Gallery Error',
+                        error?.message || 'Unable to select image. Please check photo permissions in device settings.'
+                    );
+                }
+            }
+        }, 300);
+    };
+
+
+    const handleRemovePhoto = () => {
+        setIsPhotoModalVisible(false);
+        setAvatarUrl(DEFAULT_AVATAR);
+    };
+
+
 
     const handleSaveChanges = async () => {
         if (!fullName.trim()) {
@@ -164,7 +214,11 @@ export const EditProfileScreen: React.FC = () => {
                         ]}
                     >
                         {/* Profile Photo Section */}
-                        <View style={styles.photoContainer}>
+                        <TouchableOpacity
+                            style={styles.photoContainer}
+                            onPress={handleChangePhoto}
+                            activeOpacity={0.8}
+                        >
                             <View
                                 style={[
                                     styles.avatarWrapper,
@@ -173,14 +227,12 @@ export const EditProfileScreen: React.FC = () => {
                             >
                                 <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                             </View>
-                            <TouchableOpacity
+                            <View
                                 style={[styles.cameraBadgeButton, { backgroundColor: colors.primary }]}
-                                onPress={handleChangePhoto}
-                                activeOpacity={0.85}
                             >
                                 <Ionicons name="camera" size={14} color="#FFFFFF" />
-                            </TouchableOpacity>
-                        </View>
+                            </View>
+                        </TouchableOpacity>
 
                         <TouchableOpacity
                             onPress={handleChangePhoto}
@@ -396,10 +448,140 @@ export const EditProfileScreen: React.FC = () => {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* Photo Selection Modal / Action Sheet */}
+            <Modal
+                visible={isPhotoModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsPhotoModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <TouchableWithoutFeedback onPress={() => setIsPhotoModalVisible(false)}>
+                        <View style={styles.modalDismissArea} />
+                    </TouchableWithoutFeedback>
+
+                    <View
+                        style={[
+                            styles.modalContainer,
+                            {
+                                backgroundColor: isDark ? colors.card : '#FFFFFF',
+                            },
+                        ]}
+                    >
+                        <View
+                            style={[
+                                styles.modalHandleBar,
+                                { backgroundColor: isDark ? colors.cardBorder : '#CBD5E1' },
+                            ]}
+                        />
+
+                        <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                            Profile Photo
+                        </Text>
+
+                        {/* Take Photo */}
+                        <TouchableOpacity
+                            style={[
+                                styles.modalOptionItem,
+                                {
+                                    backgroundColor: isDark
+                                        ? 'rgba(59, 130, 246, 0.12)'
+                                        : '#F0F5FF',
+                                },
+                            ]}
+                            onPress={handleTakePhoto}
+                            activeOpacity={0.7}
+                        >
+                            <View
+                                style={[
+                                    styles.modalOptionIconContainer,
+                                    { backgroundColor: colors.primary },
+                                ]}
+                            >
+                                <Ionicons name="camera" size={20} color="#FFFFFF" />
+                            </View>
+                            <Text style={[styles.modalOptionText, { color: colors.textPrimary }]}>
+                                Take Photo
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Choose from Gallery */}
+                        <TouchableOpacity
+                            style={[
+                                styles.modalOptionItem,
+                                {
+                                    backgroundColor: isDark
+                                        ? 'rgba(59, 130, 246, 0.12)'
+                                        : '#F0F5FF',
+                                },
+                            ]}
+                            onPress={handleChooseFromGallery}
+                            activeOpacity={0.7}
+                        >
+                            <View
+                                style={[
+                                    styles.modalOptionIconContainer,
+                                    { backgroundColor: colors.primary },
+                                ]}
+                            >
+                                <Ionicons name="images" size={20} color="#FFFFFF" />
+                            </View>
+                            <Text style={[styles.modalOptionText, { color: colors.textPrimary }]}>
+                                Choose from Gallery
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Remove Photo (if avatar is not default) */}
+                        {avatarUrl !== DEFAULT_AVATAR ? (
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalOptionItem,
+                                    {
+                                        backgroundColor: isDark
+                                            ? 'rgba(239, 68, 68, 0.12)'
+                                            : '#FEF2F2',
+                                    },
+                                ]}
+                                onPress={handleRemovePhoto}
+                                activeOpacity={0.7}
+                            >
+                                <View
+                                    style={[
+                                        styles.modalOptionIconContainer,
+                                        { backgroundColor: colors.error },
+                                    ]}
+                                >
+                                    <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                                </View>
+                                <Text style={[styles.modalOptionText, { color: colors.error }]}>
+                                    Remove Photo
+                                </Text>
+                            </TouchableOpacity>
+                        ) : null}
+
+                        {/* Cancel Button */}
+                        <TouchableOpacity
+                            style={[
+                                styles.modalCancelItem,
+                                {
+                                    borderColor: isDark ? colors.cardBorder : '#E2E8F0',
+                                    backgroundColor: isDark ? colors.background : '#F8FAFC',
+                                },
+                            ]}
+                            onPress={() => setIsPhotoModalVisible(false)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>
+                                Cancel
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
 
-
-
 export default EditProfileScreen;
+
