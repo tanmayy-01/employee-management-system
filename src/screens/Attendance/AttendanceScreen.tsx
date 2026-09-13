@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,7 @@ import {
     Image,
     ScrollView,
     TouchableOpacity,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -13,37 +14,72 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { CheckInOutCard } from '../../components/CheckInOutCard';
 import { BottomTabBar } from '../../components/BottomTabBar';
+import { attendanceService, RecentActivity } from '../../services/attendance.service';
+import { notificationService } from '../../services/notification.service';
+import { AttendanceStats } from '../../types';
 import { styles } from './Attendance.styles';
 
-interface ActivityItem {
-    id: string;
-    type: 'in' | 'out';
-    title: string;
-    location: string;
-    time: string;
-}
-
-const RECENT_ACTIVITIES: ActivityItem[] = [
-    {
-        id: '1',
-        type: 'out',
-        title: 'Checked Out',
-        location: 'Office HQ',
-        time: 'Fri, 5:00 PM',
-    },
-    {
-        id: '2',
-        type: 'in',
-        title: 'Checked In',
-        location: 'Office HQ',
-        time: 'Fri, 8:55 AM',
-    },
-];
-
 export const AttendanceScreen: React.FC = () => {
-    const { user, navigate } = useAuth();
+    const { user, navigate, currentScreen } = useAuth();
     const { colors, isDark } = useTheme();
     const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
+    const [activities, setActivities] = useState<RecentActivity[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const loadAttendanceData = useCallback(async () => {
+        if (!user?.id && !user?.email) return;
+        const targetId = user?.id || user?.email || '';
+
+        try {
+            const [stats, recent, unread] = await Promise.all([
+                attendanceService.getAttendanceStats(targetId),
+                attendanceService.getRecentActivities(targetId, 6),
+                notificationService.getUnreadCount(targetId),
+            ]);
+
+            if (stats) {
+                setAttendanceStats(stats);
+                setIsCheckedIn(stats.isCheckedIn);
+            }
+            if (recent) {
+                setActivities(recent);
+            }
+            setUnreadCount(unread || 0);
+        } catch (error) {
+            console.warn('Failed to load attendance details:', error);
+        }
+    }, [user?.id, user?.email]);
+
+    useEffect(() => {
+        if (currentScreen === 'Attendance') {
+            loadAttendanceData();
+        }
+    }, [currentScreen, loadAttendanceData, user]);
+
+    const handleCheckIn = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.checkIn(targetId, user?.location || 'Office HQ');
+            await loadAttendanceData();
+        } catch (error: any) {
+            Alert.alert('Check In Notice', error?.message || 'Could not check in.');
+        }
+    };
+
+    const handleCheckOut = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.checkOut(targetId, user?.location || 'Office HQ');
+            await loadAttendanceData();
+        } catch (error: any) {
+            Alert.alert('Check Out Notice', error?.message || 'Could not check out.');
+        }
+    };
 
     const avatarUrl =
         user?.avatarUrl ||
@@ -52,6 +88,13 @@ export const AttendanceScreen: React.FC = () => {
     const handleNavigateToHistory = () => {
         navigate('AttendanceHistory');
     };
+
+    const initialSessionSeconds = attendanceStats?.activeSession
+        ? Math.max(0, Math.floor((Date.now() - attendanceStats.activeSession.checkInTime) / 1000))
+        : 0;
+
+    const todayHoursText = attendanceStats?.todayHoursFormatted || '0h 0m';
+    const weekHoursText = attendanceStats?.weekHoursFormatted || '0h 0m';
 
     return (
         <SafeAreaView
@@ -81,6 +124,7 @@ export const AttendanceScreen: React.FC = () => {
                     activeOpacity={0.7}
                 >
                     <Ionicons name="notifications-outline" size={22} color={colors.primary} />
+                    {unreadCount > 0 && <View style={styles.bellBadge} />}
                 </TouchableOpacity>
             </View>
 
@@ -103,10 +147,11 @@ export const AttendanceScreen: React.FC = () => {
                 <CheckInOutCard
                     variant="session"
                     isCheckedIn={isCheckedIn}
-                    todayHours={isCheckedIn ? '4h 32m' : '0h 0m'}
-                    weekHours="32h 15m"
-                    onCheckIn={() => setIsCheckedIn(true)}
-                    onCheckOut={() => setIsCheckedIn(false)}
+                    todayHours={todayHoursText}
+                    weekHours={weekHoursText}
+                    initialSessionSeconds={initialSessionSeconds}
+                    onCheckIn={handleCheckIn}
+                    onCheckOut={handleCheckOut}
                 />
 
                 {/* Attendance History Quick Link Banner Button */}
@@ -189,65 +234,88 @@ export const AttendanceScreen: React.FC = () => {
                             },
                         ]}
                     >
-                        {RECENT_ACTIVITIES.map((activity, index) => {
-                            const isLast = index === RECENT_ACTIVITIES.length - 1;
-                            return (
-                                <React.Fragment key={activity.id}>
-                                    <View style={styles.activityItem}>
-                                        <View
-                                            style={[
-                                                styles.activityDot,
-                                                {
-                                                    backgroundColor: isDark
-                                                        ? colors.inputBorder
-                                                        : '#CBD5E1',
-                                                },
-                                            ]}
-                                        />
-                                        <View style={styles.activityInfo}>
-                                            <View style={styles.activityTopRow}>
+                        {activities.length === 0 ? (
+                            <View style={{ paddingVertical: 18, alignItems: 'center' }}>
+                                <Ionicons
+                                    name="time-outline"
+                                    size={30}
+                                    color={isDark ? colors.textTertiary : '#94A3B8'}
+                                    style={{ marginBottom: 6 }}
+                                />
+                                <Text
+                                    style={{
+                                        color: isDark ? colors.textSecondary : '#64748B',
+                                        fontSize: 13,
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    No attendance activity recorded yet today.
+                                </Text>
+                            </View>
+                        ) : (
+                            activities.map((activity, index) => {
+                                const isLast = index === activities.length - 1;
+                                return (
+                                    <React.Fragment key={activity.id}>
+                                        <View style={styles.activityItem}>
+                                            <View
+                                                style={[
+                                                    styles.activityDot,
+                                                    {
+                                                        backgroundColor:
+                                                            activity.type === 'in'
+                                                                ? '#10B981'
+                                                                : isDark
+                                                                ? colors.inputBorder
+                                                                : '#CBD5E1',
+                                                    },
+                                                ]}
+                                            />
+                                            <View style={styles.activityInfo}>
+                                                <View style={styles.activityTopRow}>
+                                                    <Text
+                                                        style={[
+                                                            styles.activityItemTitle,
+                                                            { color: colors.textPrimary },
+                                                        ]}
+                                                    >
+                                                        {activity.title}
+                                                    </Text>
+                                                    <Text
+                                                        style={[
+                                                            styles.activityTime,
+                                                            { color: colors.textSecondary },
+                                                        ]}
+                                                    >
+                                                        {activity.time}
+                                                    </Text>
+                                                </View>
                                                 <Text
                                                     style={[
-                                                        styles.activityItemTitle,
-                                                        { color: colors.textPrimary },
-                                                    ]}
-                                                >
-                                                    {activity.title}
-                                                </Text>
-                                                <Text
-                                                    style={[
-                                                        styles.activityTime,
+                                                        styles.activityLocation,
                                                         { color: colors.textSecondary },
                                                     ]}
                                                 >
-                                                    {activity.time}
+                                                    {activity.location}
                                                 </Text>
                                             </View>
-                                            <Text
-                                                style={[
-                                                    styles.activityLocation,
-                                                    { color: colors.textSecondary },
-                                                ]}
-                                            >
-                                                {activity.location}
-                                            </Text>
                                         </View>
-                                    </View>
-                                    {!isLast && (
-                                        <View
-                                            style={[
-                                                styles.activityDivider,
-                                                {
-                                                    backgroundColor: isDark
-                                                        ? colors.inputBorder
-                                                        : '#F1F5F9',
-                                                },
-                                            ]}
-                                        />
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
+                                        {!isLast && (
+                                            <View
+                                                style={[
+                                                    styles.activityDivider,
+                                                    {
+                                                        backgroundColor: isDark
+                                                            ? colors.inputBorder
+                                                            : '#F1F5F9',
+                                                    },
+                                                ]}
+                                            />
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })
+                        )}
                     </View>
                 </View>
             </ScrollView>
@@ -259,3 +327,4 @@ export const AttendanceScreen: React.FC = () => {
 };
 
 export default AttendanceScreen;
+

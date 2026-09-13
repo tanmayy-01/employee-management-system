@@ -7,6 +7,7 @@ import {
     ScrollView,
     TouchableOpacity,
     RefreshControl,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -16,29 +17,43 @@ import { CheckInOutCard } from '../../components/CheckInOutCard';
 import { BottomTabBar } from '../../components/BottomTabBar';
 import { DashboardSkeleton } from '../../components/DashboardSkeleton';
 import { employeeService } from '../../services/employee.service';
-import { Employee } from '../../types';
+import { attendanceService } from '../../services/attendance.service';
+import { notificationService } from '../../services/notification.service';
+import { Employee, AttendanceStats } from '../../types';
 import { styles } from './Dashboard.styles';
-
 
 const DashboardScreen: React.FC = () => {
     const { user, navigate, currentScreen, reloadUserProfile } = useAuth();
     const { colors, isDark } = useTheme();
     const [employee, setEmployee] = useState<Employee | null>(null);
     const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSkeletonLoading, setIsSkeletonLoading] = useState(false);
 
     const loadDashboardData = useCallback(async () => {
         if (!user?.id && !user?.email) return;
+        const targetId = user?.id || user?.email || '';
+
         try {
-            const emp =
-                (user?.id ? await employeeService.getEmployeeById(user.id) : null) ||
-                (user?.email ? await employeeService.getEmployeeByEmail(user.email) : null);
+            const [emp, stats, unread] = await Promise.all([
+                (user?.id ? employeeService.getEmployeeById(user.id) : null) ||
+                (user?.email ? employeeService.getEmployeeByEmail(user.email) : null),
+                attendanceService.getAttendanceStats(targetId),
+                notificationService.getUnreadCount(targetId),
+            ]);
+
             if (emp) {
                 setEmployee(emp);
             }
+            if (stats) {
+                setAttendanceStats(stats);
+                setIsCheckedIn(stats.isCheckedIn);
+            }
+            setUnreadCount(unread || 0);
         } catch (error) {
-            console.warn('Failed to load employee details on dashboard:', error);
+            console.warn('Failed to load employee & attendance details on dashboard:', error);
         }
     }, [user?.id, user?.email]);
 
@@ -65,6 +80,34 @@ const DashboardScreen: React.FC = () => {
         } finally {
             setIsRefreshing(false);
             setIsSkeletonLoading(false);
+        }
+    };
+
+    const handleCheckIn = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.checkIn(targetId, user?.location || 'Main Office');
+            const updatedStats = await attendanceService.getAttendanceStats(targetId);
+            setAttendanceStats(updatedStats);
+            setIsCheckedIn(true);
+        } catch (error: any) {
+            Alert.alert('Check In Notice', error?.message || 'Could not check in.');
+        }
+    };
+
+    const handleCheckOut = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.checkOut(targetId, user?.location || 'Main Office');
+            const updatedStats = await attendanceService.getAttendanceStats(targetId);
+            setAttendanceStats(updatedStats);
+            setIsCheckedIn(false);
+        } catch (error: any) {
+            Alert.alert('Check Out Notice', error?.message || 'Could not check out.');
         }
     };
 
@@ -98,6 +141,14 @@ const DashboardScreen: React.FC = () => {
         return `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
     };
 
+    const initialSessionSeconds = attendanceStats?.activeSession
+        ? Math.max(0, Math.floor((Date.now() - attendanceStats.activeSession.checkInTime) / 1000))
+        : 0;
+
+    const todayHoursText = attendanceStats?.todayHoursFormatted || '0h 0m';
+    const weekHoursText = attendanceStats?.weekHoursFormatted || '0h 0m';
+    const remainingHoursText = attendanceStats?.remainingHoursFormatted || '8h 00m';
+
     return (
         <SafeAreaView
             style={[styles.safeArea, { backgroundColor: isDark ? colors.background : '#FAF8FF' }]}
@@ -126,6 +177,7 @@ const DashboardScreen: React.FC = () => {
                     activeOpacity={0.7}
                 >
                     <Ionicons name="notifications-outline" size={22} color={colors.primary} />
+                    {unreadCount > 0 && <View style={styles.bellBadge} />}
                 </TouchableOpacity>
             </View>
 
@@ -202,7 +254,7 @@ const DashboardScreen: React.FC = () => {
                                     TOTAL HOURS TODAY
                                 </Text>
                                 <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                                    {isCheckedIn ? '4h 32m' : '0h 0m'}
+                                    {todayHoursText}
                                 </Text>
                             </View>
                         </View>
@@ -235,7 +287,7 @@ const DashboardScreen: React.FC = () => {
                                     REMAINING HOURS
                                 </Text>
                                 <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                                    {isCheckedIn ? '3h 28m' : '8h 00m'}
+                                    {remainingHoursText}
                                 </Text>
                             </View>
                         </View>
@@ -244,10 +296,11 @@ const DashboardScreen: React.FC = () => {
                         <CheckInOutCard
                             variant="session"
                             isCheckedIn={isCheckedIn}
-                            todayHours={isCheckedIn ? '4h 32m' : '0h 0m'}
-                            weekHours="32h 15m"
-                            onCheckIn={() => setIsCheckedIn(true)}
-                            onCheckOut={() => setIsCheckedIn(false)}
+                            todayHours={todayHoursText}
+                            weekHours={weekHoursText}
+                            initialSessionSeconds={initialSessionSeconds}
+                            onCheckIn={handleCheckIn}
+                            onCheckOut={handleCheckOut}
                         />
 
                         {/* Today's Timeline Card */}
@@ -273,12 +326,20 @@ const DashboardScreen: React.FC = () => {
                                 />
                                 <View style={styles.timelineContent}>
                                     <Text style={[styles.timelineItemTitle, { color: colors.textPrimary }]}>
-                                        {isCheckedIn ? 'Checked In (Current)' : 'Not Checked In Yet'}
+                                        {isCheckedIn
+                                            ? 'Checked In (Active Session)'
+                                            : (attendanceStats?.todaySessionsCount || 0) > 0
+                                            ? 'Checked Out'
+                                            : 'Not Checked In Yet'}
                                     </Text>
                                     <View style={styles.timelineLocationRow}>
                                         <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
                                         <Text style={[styles.timelineLocationText, { color: colors.textSecondary }]}>
-                                            {isCheckedIn ? 'Main Office • 08:30 AM' : 'Main Office • Ready for check-in'}
+                                            {isCheckedIn
+                                                ? `${attendanceStats?.lastCheckInLocation || 'Main Office'} • Started ${attendanceStats?.lastCheckInFormatted || ''}`
+                                                : (attendanceStats?.todaySessionsCount || 0) > 0
+                                                ? `${todayHoursText} worked across ${attendanceStats?.todaySessionsCount} session(s) today`
+                                                : 'Main Office • Ready for check-in'}
                                         </Text>
                                     </View>
                                 </View>
@@ -295,4 +356,5 @@ const DashboardScreen: React.FC = () => {
 };
 
 export default DashboardScreen;
+
 

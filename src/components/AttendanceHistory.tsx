@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../theme/ThemeContext';
+import { DateRangeModal } from './DateRangeModal';
 
 export type FilterType = 'monthly' | 'weekly' | 'today' | 'custom';
 
@@ -17,6 +18,8 @@ export type AttendanceStatus = 'present' | 'late' | 'half-day' | 'absent' | 'hol
 export interface AttendanceRecord {
   id: string;
   date: string;
+  rawDate?: string; // YYYY-MM-DD
+  timestamp?: number;
   dayOfWeek?: string;
   status: string;
   statusType?: AttendanceStatus;
@@ -94,6 +97,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   const { colors, isDark } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>(initialFilter);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [isCalendarModalVisible, setIsCalendarModalVisible] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
+  const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
 
   const filterOptions: { key: FilterType; label: string; icon?: string }[] = [
     { key: 'monthly', label: 'Monthly' },
@@ -103,17 +109,121 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
 
   const handleClearFilters = () => {
     setSearchQuery('');
+    setCustomStartDate(null);
+    setCustomEndDate(null);
     setActiveFilter('monthly');
   };
 
-  // Filter records based on activeFilter and searchQuery
+  const handleApplyCustomRange = (startDate: Date, endDate: Date) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setActiveFilter('custom');
+  };
+
+  const handleResetCustomRange = () => {
+    setCustomStartDate(null);
+    setCustomEndDate(null);
+    setActiveFilter('monthly');
+  };
+
+  const formatCustomPillLabel = (): string => {
+    if (customStartDate && customEndDate) {
+      const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const startStr = `${shortMonths[customStartDate.getMonth()]} ${customStartDate.getDate()}`;
+      const endStr = `${shortMonths[customEndDate.getMonth()]} ${customEndDate.getDate()}`;
+      return startStr === endStr ? startStr : `${startStr} - ${endStr}`;
+    }
+    return 'Custom Range';
+  };
+
+  // Filter records based on activeFilter, custom date range, and searchQuery
   const filteredGroups = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const todayDay = String(now.getDate()).padStart(2, '0');
+    const todayYMD = `${todayYear}-${todayMonth}-${todayDay}`;
 
-    return groups
+    // Start of week (Monday 00:00:00)
+    const day = now.getDay();
+    const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(now.getFullYear(), now.getMonth(), diffToMonday, 0, 0, 0, 0);
+    const startOfWeekMs = monday.getTime();
+
+    // Start of current month (1st 00:00:00)
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const startOfMonthMs = startOfMonth.getTime();
+
+    // Custom date range timestamps
+    const customStartMs = customStartDate
+      ? new Date(
+          customStartDate.getFullYear(),
+          customStartDate.getMonth(),
+          customStartDate.getDate(),
+          0,
+          0,
+          0,
+          0
+        ).getTime()
+      : null;
+
+    const customEndMs = customEndDate
+      ? new Date(
+          customEndDate.getFullYear(),
+          customEndDate.getMonth(),
+          customEndDate.getDate(),
+          23,
+          59,
+          59,
+          999
+        ).getTime()
+      : null;
+
+    const result = groups
       .map((group) => {
         // Filter records inside group
         const matchedRecords = group.records.filter((record) => {
+          // 1. Filter by Active Tab
+          if (activeFilter === 'today') {
+            if (record.rawDate) {
+              if (record.rawDate !== todayYMD) return false;
+            } else if (record.timestamp) {
+              const recDate = new Date(record.timestamp);
+              if (
+                recDate.getFullYear() !== now.getFullYear() ||
+                recDate.getMonth() !== now.getMonth() ||
+                recDate.getDate() !== now.getDate()
+              ) {
+                return false;
+              }
+            } else {
+              const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const todayStr = `${shortMonths[now.getMonth()]} ${now.getDate()}`;
+              if (!record.date.includes(todayStr)) return false;
+            }
+          } else if (activeFilter === 'weekly') {
+            if (record.timestamp && record.timestamp < startOfWeekMs) {
+              return false;
+            }
+          } else if (activeFilter === 'monthly') {
+            // Keep monthly groups intact
+          } else if (activeFilter === 'custom') {
+            if (customStartMs && customEndMs) {
+              if (record.timestamp) {
+                if (record.timestamp < customStartMs || record.timestamp > customEndMs) {
+                  return false;
+                }
+              } else if (record.rawDate) {
+                const recTime = new Date(record.rawDate + 'T12:00:00').getTime();
+                if (recTime < customStartMs || recTime > customEndMs) {
+                  return false;
+                }
+              }
+            }
+          }
+
+          // 2. Filter by search query
           if (!trimmedQuery) return true;
           return (
             record.date.toLowerCase().includes(trimmedQuery) ||
@@ -123,17 +233,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
           );
         });
 
-        // If search query is applied and no records matched in a group that originally had records
-        if (trimmedQuery && group.records.length > 0 && matchedRecords.length === 0) {
-          return {
-            ...group,
-            records: [],
-            emptyState: {
-              title: 'No records found',
-              description: `No attendance logs found matching "${searchQuery}".`,
-              showClearFilter: true,
-            },
-          };
+        // If no records match in this group, do not render empty group container
+        if (matchedRecords.length === 0) {
+          return null;
         }
 
         return {
@@ -141,15 +243,52 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
           records: matchedRecords,
         };
       })
-      .filter((group) => {
-        // Filter by tab if desired
-        if (activeFilter === 'today') {
-          // If viewing today, filter out older section groups if needed
-          return group.id === 'oct-2023';
-        }
-        return true;
-      });
-  }, [groups, searchQuery, activeFilter]);
+      .filter((g): g is AttendanceGroup => g !== null);
+
+    // If no records found after filtering, show helpful contextual empty state
+    if (result.length === 0) {
+      let emptyTitle = 'No records found';
+      let emptyDesc = 'You have no attendance logs for this selected time period.';
+
+      if (activeFilter === 'today') {
+        emptyTitle = 'No attendance logs today';
+        emptyDesc = 'You have not checked in today yet.';
+      } else if (activeFilter === 'weekly') {
+        emptyTitle = 'No records this week';
+        emptyDesc = 'No attendance logs recorded for this week yet.';
+      } else if (activeFilter === 'custom') {
+        const rangeText = formatCustomPillLabel();
+        emptyTitle = 'No records in date range';
+        emptyDesc = `No attendance logs found for ${rangeText}.`;
+      } else if (trimmedQuery) {
+        emptyTitle = 'No results found';
+        emptyDesc = `No attendance logs matched "${searchQuery}".`;
+      }
+
+      return [
+        {
+          id: 'filtered_empty',
+          sectionTitle:
+            activeFilter === 'today'
+              ? 'Today'
+              : activeFilter === 'weekly'
+              ? 'This Week'
+              : activeFilter === 'custom'
+              ? formatCustomPillLabel()
+              : 'Attendance Records',
+          records: [],
+          emptyState: {
+            title: emptyTitle,
+            description: emptyDesc,
+            showClearFilter:
+              activeFilter !== 'monthly' || trimmedQuery.length > 0,
+          },
+        },
+      ];
+    }
+
+    return result;
+  }, [groups, searchQuery, activeFilter, customStartDate, customEndDate]);
 
   const getStatusBadgeStyle = (statusType?: AttendanceStatus) => {
     switch (statusType) {
@@ -202,7 +341,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
               color: colors.textPrimary,
             },
           ]}
-          placeholder="Search by date (e.g., Oct 12) or location..."
+          placeholder="Search by date (e.g., Sep 13) or location..."
           placeholderTextColor={isDark ? colors.textTertiary : '#9CA3AF'}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -245,7 +384,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                         },
                       ],
                 ]}
-                onPress={() => setActiveFilter(filter.key)}
+                onPress={() => {
+                  setActiveFilter(filter.key);
+                }}
                 activeOpacity={0.7}
               >
                 <Text
@@ -253,7 +394,10 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                     styles.filterPillText,
                     isActive
                       ? styles.filterPillTextActive
-                      : [styles.filterPillTextInactive, { color: isDark ? colors.textSecondary : '#475569' }],
+                      : [
+                          styles.filterPillTextInactive,
+                          { color: isDark ? colors.textSecondary : '#475569' },
+                        ],
                   ]}
                 >
                   {filter.label}
@@ -263,7 +407,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
           })}
         </View>
 
-        {/* Custom Range Pill */}
+        {/* Custom Range Pill with interactive Calendar Modal trigger */}
         <TouchableOpacity
           style={[
             styles.filterPill,
@@ -279,21 +423,11 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                 ],
           ]}
           onPress={() => {
-            setActiveFilter('custom');
+            setIsCalendarModalVisible(true);
             onCustomRangePress?.();
           }}
           activeOpacity={0.7}
         >
-          <Text
-            style={[
-              styles.filterPillText,
-              activeFilter === 'custom'
-                ? styles.filterPillTextActive
-                : [styles.filterPillTextInactive, { color: isDark ? colors.textSecondary : '#475569' }],
-            ]}
-          >
-            Custom Range
-          </Text>
           <Ionicons
             name="calendar-outline"
             size={14}
@@ -304,8 +438,34 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                 ? colors.textSecondary
                 : '#475569'
             }
-            style={styles.customRangeIcon}
+            style={styles.customRangeIconLeft}
           />
+          <Text
+            style={[
+              styles.filterPillText,
+              activeFilter === 'custom'
+                ? styles.filterPillTextActive
+                : [
+                    styles.filterPillTextInactive,
+                    { color: isDark ? colors.textSecondary : '#475569' },
+                  ],
+            ]}
+          >
+            {formatCustomPillLabel()}
+          </Text>
+
+          {activeFilter === 'custom' && (
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                handleResetCustomRange();
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.customRangeClose}
+            >
+              <Ionicons name="close-circle" size={15} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -330,7 +490,8 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
               {group.records.map((record, recIdx) => {
                 const badgeStyle = getStatusBadgeStyle(record.statusType);
                 const isFirstRecordOverall = isFirstGroup && recIdx === 0;
-                const isRecordHighlighted = record.isHighlighted ?? isFirstRecordOverall;
+                const isRecordHighlighted =
+                  record.isHighlighted ?? isFirstRecordOverall;
 
                 return (
                   <View key={record.id} style={styles.timelineRow}>
@@ -340,7 +501,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                         style={[
                           styles.timelineLine,
                           {
-                            backgroundColor: isDark ? colors.inputBorder : '#E2E8F0',
+                            backgroundColor: isDark
+                              ? colors.inputBorder
+                              : '#E2E8F0',
                           },
                         ]}
                       />
@@ -415,7 +578,11 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                         <Text
                           style={[
                             styles.detailText,
-                            { color: isDark ? colors.textSecondary : '#475569' },
+                            {
+                              color: isDark
+                                ? colors.textSecondary
+                                : '#475569',
+                            },
                           ]}
                         >
                           {record.timeRange}
@@ -433,7 +600,11 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                         <Text
                           style={[
                             styles.detailText,
-                            { color: isDark ? colors.textSecondary : '#475569' },
+                            {
+                              color: isDark
+                                ? colors.textSecondary
+                                : '#475569',
+                            },
                           ]}
                         >
                           {record.location}
@@ -444,7 +615,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                 );
               })}
 
-              {/* Group Empty State (e.g. Sep 11 - Sep 15 or empty query) */}
+              {/* Group Empty State */}
               {group.records.length === 0 && group.emptyState && (
                 <View style={styles.timelineRow}>
                   {/* Timeline Left Track & Dot */}
@@ -453,7 +624,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                       style={[
                         styles.timelineLine,
                         {
-                          backgroundColor: isDark ? colors.inputBorder : '#E2E8F0',
+                          backgroundColor: isDark
+                            ? colors.inputBorder
+                            : '#E2E8F0',
                         },
                       ]}
                     />
@@ -515,22 +688,45 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                       {group.emptyState.description}
                     </Text>
 
-                    {group.emptyState.showClearFilter && (
-                      <TouchableOpacity
-                        onPress={handleClearFilters}
-                        style={styles.clearFilterButton}
-                        activeOpacity={0.7}
-                      >
-                        <Text
+                    <View style={styles.emptyActionsRow}>
+                      {activeFilter === 'custom' && (
+                        <TouchableOpacity
+                          onPress={() => setIsCalendarModalVisible(true)}
                           style={[
-                            styles.clearFilterText,
-                            { color: colors.primary },
+                            styles.changeRangeButton,
+                            { backgroundColor: colors.primary },
                           ]}
+                          activeOpacity={0.7}
                         >
-                          Clear Filters
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                          <Ionicons
+                            name="calendar"
+                            size={14}
+                            color="#FFFFFF"
+                            style={{ marginRight: 5 }}
+                          />
+                          <Text style={styles.changeRangeText}>
+                            Change Range
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      {group.emptyState.showClearFilter && (
+                        <TouchableOpacity
+                          onPress={handleClearFilters}
+                          style={styles.clearFilterButton}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.clearFilterText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            Clear Filters
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </View>
               )}
@@ -538,6 +734,16 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
           );
         })}
       </View>
+
+      {/* Date Range Calendar Modal */}
+      <DateRangeModal
+        visible={isCalendarModalVisible}
+        startDate={customStartDate}
+        endDate={customEndDate}
+        onClose={() => setIsCalendarModalVisible(false)}
+        onApply={handleApplyCustomRange}
+        onReset={handleResetCustomRange}
+      />
     </View>
   );
 };
@@ -610,7 +816,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
-  customRangeIcon: {
+  customRangeIconLeft: {
+    marginRight: 6,
+  },
+  customRangeClose: {
     marginLeft: 6,
   },
   timelineListContainer: {
@@ -732,15 +941,32 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 10,
+    marginBottom: 12,
     maxWidth: 240,
   },
+  emptyActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  changeRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  changeRangeText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
   clearFilterButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
   clearFilterText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
   },
 });

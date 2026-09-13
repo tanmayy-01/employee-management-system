@@ -95,3 +95,45 @@ export interface AuthContextType {
   checkSessionValidity: () => Promise<boolean>;
   clearAuthError: () => void;
 }
+
+export interface AttendanceLog {
+
+  id: string;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
+  checkInTime: number;
+  checkOutTime: number | null;
+  durationSeconds: number;
+  status: 'present' | 'half-day' | 'late' | 'in-progress' | 'completed';
+  checkInLocation: string;
+  checkOutLocation?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AttendanceStats {
+  isCheckedIn: boolean;
+  activeSession: AttendanceLog | null;
+  todaySeconds: number;
+  todayHoursFormatted: string;
+  weekSeconds: number;
+  weekHoursFormatted: string;
+  remainingSeconds: number;
+  remainingHoursFormatted: string;
+  todaySessionsCount: number;
+  lastCheckInFormatted?: string;
+  lastCheckInLocation?: string;
+}
+
+export interface AppNotification {
+  id: string;
+  employeeId: string;
+  title: string;
+  description: string;
+  time: string;
+  timestamp: number;
+  type: 'checkin' | 'checkout' | 'meeting' | 'summary' | 'alert';
+  isRead: boolean;
+}
+
+

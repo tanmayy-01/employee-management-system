@@ -38,7 +38,10 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   // Sync prop changes
   useEffect(() => {
     setCheckedIn(isCheckedIn);
-  }, [isCheckedIn]);
+    if (initialSessionSeconds > 0) {
+      setSessionSeconds(initialSessionSeconds);
+    }
+  }, [isCheckedIn, initialSessionSeconds]);
 
   // Session duration timer
   useEffect(() => {
@@ -96,19 +99,22 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
 
   const handleToggle = async (action: 'in' | 'out') => {
     setIsLoading(true);
-    // Simulated network latency
-    await new Promise<void>((resolve) => setTimeout(resolve, 350));
-    setIsLoading(false);
-
-    if (action === 'in') {
-      setCheckedIn(true);
-      if (onCheckIn) onCheckIn();
-    } else {
-      setCheckedIn(false);
-      setSessionSeconds(0);
-      if (onCheckOut) onCheckOut();
+    try {
+      if (action === 'in') {
+        if (onCheckIn) await onCheckIn();
+        setCheckedIn(true);
+      } else {
+        if (onCheckOut) await onCheckOut();
+        setCheckedIn(false);
+        setSessionSeconds(0);
+      }
+    } catch (error) {
+      console.warn('Check in/out toggle error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
 
   // -------------------------------------------------------------
   // Variant: "session" and checked-in

@@ -48,6 +48,18 @@ export const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 6,
         elevation: 1,
+        position: 'relative',
+    },
+    bellBadge: {
+        position: 'absolute',
+        top: 7,
+        right: 8,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#EF4444',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
     },
     scrollContent: {
         paddingHorizontal: 16,

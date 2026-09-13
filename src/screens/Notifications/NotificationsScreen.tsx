@@ -1,77 +1,96 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
-    StyleSheet,
     StatusBar,
     Image,
     ScrollView,
     TouchableOpacity,
+    RefreshControl,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { BottomTabBar } from '../../components/BottomTabBar';
+import { notificationService } from '../../services/notification.service';
+import { AppNotification } from '../../types';
 import { styles } from './Notifications.styles';
 
-interface NotificationItem {
-    id: string;
-    title: string;
-    description: string;
-    time: string;
-    type: 'checkin' | 'meeting' | 'summary' | 'alert';
-}
-
-const TODAY_NOTIFICATIONS: NotificationItem[] = [
-    {
-        id: '1',
-        title: 'Checked in successfully',
-        description: 'Your attendance has been recorded for the day.',
-        time: '09:15 AM',
-        type: 'checkin',
-    },
-    {
-        id: '2',
-        title: 'Team Meeting',
-        description: 'Weekly sync in Conference Room B.',
-        time: '11:00 AM',
-        type: 'meeting',
-    },
-];
-
-const EARLIER_NOTIFICATIONS: NotificationItem[] = [
-    {
-        id: '3',
-        title: 'Attendance Summary',
-        description: 'You worked 8h 42m yesterday.',
-        time: 'Yesterday',
-        type: 'summary',
-    },
-    {
-        id: '4',
-        title: 'System Maintenance',
-        description: 'WorkPulse will be down for scheduled maintenance this weekend.',
-        time: 'Oct 24',
-        type: 'alert',
-    },
-];
-
 export const NotificationsScreen: React.FC = () => {
-    const { user, navigate } = useAuth();
+    const { user, navigate, currentScreen } = useAuth();
     const { colors, isDark } = useTheme();
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const loadNotifications = useCallback(async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            const list = await notificationService.getNotifications(targetId);
+            setNotifications(list);
+            // Mark all as read once viewed
+            await notificationService.markAllAsRead(targetId);
+        } catch (error) {
+            console.warn('Failed to load notifications:', error);
+        }
+    }, [user?.id, user?.email]);
+
+    useEffect(() => {
+        if (currentScreen === 'Notifications') {
+            loadNotifications();
+        }
+    }, [currentScreen, loadNotifications]);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await loadNotifications();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const handleClearAll = () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId || notifications.length === 0) return;
+
+        Alert.alert(
+            'Clear Notifications',
+            'Are you sure you want to clear all notifications?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Clear All',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await notificationService.clearAllNotifications(targetId);
+                        setNotifications([]);
+                    },
+                },
+            ]
+        );
+    };
 
     const avatarUrl =
         user?.avatarUrl ||
         'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
 
-    const getIconConfig = (type: NotificationItem['type']) => {
+    const getIconConfig = (type: AppNotification['type']) => {
         switch (type) {
             case 'checkin':
                 return {
                     name: 'checkmark-circle-outline',
                     color: colors.primary,
                     bgColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EBF2FF',
+                };
+            case 'checkout':
+                return {
+                    name: 'log-out-outline',
+                    color: '#10B981',
+                    bgColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
                 };
             case 'meeting':
                 return {
@@ -100,7 +119,10 @@ export const NotificationsScreen: React.FC = () => {
         }
     };
 
-    const renderNotificationCard = (item: NotificationItem) => {
+    const todayList = notifications.filter((n) => notificationService.isToday(n.timestamp));
+    const earlierList = notifications.filter((n) => !notificationService.isToday(n.timestamp));
+
+    const renderNotificationCard = (item: AppNotification) => {
         const iconConfig = getIconConfig(item.type);
 
         return (
@@ -152,7 +174,7 @@ export const NotificationsScreen: React.FC = () => {
                     <Text style={[styles.brandTitle, { color: colors.primary }]}>WorkPulse</Text>
                 </View>
 
-                {/* Bell Button (Active indicator on Notifications screen) */}
+                {/* Bell Button */}
                 <TouchableOpacity
                     style={[
                         styles.bellButton,
@@ -172,29 +194,82 @@ export const NotificationsScreen: React.FC = () => {
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                        progressBackgroundColor={isDark ? colors.card : '#FFFFFF'}
+                    />
+                }
             >
-                {/* Screen Title */}
+                {/* Screen Title & Action */}
                 <View style={styles.titleSection}>
                     <Text style={[styles.screenTitle, { color: colors.textPrimary }]}>
                         Notifications
                     </Text>
+                    {notifications.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.clearAllButton}
+                            onPress={handleClearAll}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.clearAllText, { color: colors.primary }]}>
+                                Clear All
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
-                {/* Section: Today */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                        Today
-                    </Text>
-                    {TODAY_NOTIFICATIONS.map(renderNotificationCard)}
-                </View>
+                {notifications.length === 0 ? (
+                    <View style={styles.emptyStateContainer}>
+                        <View
+                            style={[
+                                styles.emptyIconCircle,
+                                {
+                                    backgroundColor: isDark
+                                        ? 'rgba(59, 130, 246, 0.12)'
+                                        : '#EBF2FF',
+                                },
+                            ]}
+                        >
+                            <Ionicons
+                                name="notifications-off-outline"
+                                size={32}
+                                color={colors.primary}
+                            />
+                        </View>
+                        <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                            No Notifications Yet
+                        </Text>
+                        <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                            When you check in, check out, or complete work sessions, your total working hours will appear here.
+                        </Text>
+                    </View>
+                ) : (
+                    <>
+                        {/* Section: Today */}
+                        {todayList.length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                                    Today
+                                </Text>
+                                {todayList.map(renderNotificationCard)}
+                            </View>
+                        )}
 
-                {/* Section: Earlier */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                        Earlier
-                    </Text>
-                    {EARLIER_NOTIFICATIONS.map(renderNotificationCard)}
-                </View>
+                        {/* Section: Earlier */}
+                        {earlierList.length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                                    Earlier
+                                </Text>
+                                {earlierList.map(renderNotificationCard)}
+                            </View>
+                        )}
+                    </>
+                )}
             </ScrollView>
 
             {/* Bottom Tab Bar Navigation */}
@@ -202,7 +277,5 @@ export const NotificationsScreen: React.FC = () => {
         </SafeAreaView>
     );
 };
-
-
 
 export default NotificationsScreen;

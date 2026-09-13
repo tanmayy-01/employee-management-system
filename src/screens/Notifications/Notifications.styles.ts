@@ -56,12 +56,25 @@ export const styles = StyleSheet.create({
     titleSection: {
         marginTop: 8,
         marginBottom: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     screenTitle: {
         fontSize: 22,
         fontWeight: '800',
         color: '#111827',
         letterSpacing: -0.2,
+    },
+    clearAllButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+    },
+    clearAllText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#004AC6',
     },
     section: {
         marginBottom: 16,
@@ -122,4 +135,36 @@ export const styles = StyleSheet.create({
         color: '#6B7280',
         lineHeight: 16,
     },
-});
+    unreadBadge: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#004AC6',
+        marginLeft: 6,
+    },
+    emptyStateContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 50,
+        paddingHorizontal: 20,
+    },
+    emptyIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        marginBottom: 6,
+        textAlign: 'center',
+    },
+    emptySubtitle: {
+        fontSize: 13,
+        textAlign: 'center',
+        lineHeight: 19,
+    },
+});
