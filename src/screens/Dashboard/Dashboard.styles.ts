@@ -194,4 +194,49 @@ export const styles = StyleSheet.create({
         color: '#6B7280',
         marginLeft: 3,
     },
+    // Skeleton styles
+    skeletonCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 18,
+        marginVertical: 6,
+        shadowColor: '#1A2A4E',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 10,
+        elevation: 1,
+        borderWidth: 1,
+        borderColor: 'rgba(226, 232, 240, 0.7)',
+    },
+    skeletonBox: {
+        backgroundColor: '#E2E8F0',
+        borderRadius: 6,
+    },
+    skeletonCircle: {
+        backgroundColor: '#E2E8F0',
+        borderRadius: 999,
+    },
+    skeletonRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    skeletonStatCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        padding: 14,
+        marginVertical: 5,
+        borderWidth: 1,
+        borderColor: 'rgba(226, 232, 240, 0.7)',
+    },
+    skeletonCheckInCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 18,
+        padding: 18,
+        marginVertical: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(226, 232, 240, 0.7)',
+    },
 });
+
