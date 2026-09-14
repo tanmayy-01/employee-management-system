@@ -1,4 +1,5 @@
 import { TabItem } from "../components";
+import { ScreenName } from "../types";
 
 export const TABS: TabItem[] = [
     {
@@ -26,3 +27,24 @@ export const TABS: TabItem[] = [
         activeIconName: 'settings',
     },
 ];
+
+export const DEFAULT_PREVIOUS_SCREEN: Record<ScreenName, ScreenName | null> = {
+    Splash: null,
+    Login: null,
+    Home: null,
+    Dashboard: null,
+    SignUp: 'Login',
+    ForgotPassword: 'Login',
+    OtpVerification: 'ForgotPassword',
+    ResetPassword: 'Login',
+    Attendance: 'Dashboard',
+    AttendanceHistory: 'Attendance',
+    Profile: 'Dashboard',
+    Settings: 'Dashboard',
+    Notifications: 'Dashboard',
+    EditProfile: 'Profile',
+    ChangePassword: 'Settings',
+};
+
+// Check session validity interval: 1 minute
+export const SESSION_CHECK_INTERVAL_MS = 60 * 1000;

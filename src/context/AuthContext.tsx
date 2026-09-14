@@ -17,29 +17,11 @@ import {
 import { User, AuthSession, ScreenName, AuthContextType, SignUpPayload } from '../types';
 import { databaseService } from '../services/database.service';
 import { firebaseAuthService } from '../services/firebaseAuth.service';
+import { DEFAULT_PREVIOUS_SCREEN, SESSION_CHECK_INTERVAL_MS } from '../constants/auth.constants';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEFAULT_PREVIOUS_SCREEN: Record<ScreenName, ScreenName | null> = {
-  Splash: null,
-  Login: null,
-  Home: null,
-  Dashboard: null,
-  SignUp: 'Login',
-  ForgotPassword: 'Login',
-  OtpVerification: 'ForgotPassword',
-  ResetPassword: 'Login',
-  Attendance: 'Dashboard',
-  AttendanceHistory: 'Attendance',
-  Profile: 'Dashboard',
-  Settings: 'Dashboard',
-  Notifications: 'Dashboard',
-  EditProfile: 'Profile',
-  ChangePassword: 'Settings',
-};
 
-// Check session validity interval: 1 minute
-const SESSION_CHECK_INTERVAL_MS = 60 * 1000;
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -198,7 +180,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           // Refresh token if nearing expiration
           if (sessionStatus.needsRefresh) {
-            firebaseAuthService.refreshSessionToken(cachedSession.userId).catch(() => {});
+            firebaseAuthService.refreshSessionToken(cachedSession.userId).catch(() => { });
           }
 
           setIsLoading(false);

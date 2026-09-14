@@ -71,14 +71,6 @@ class DatabaseService {
         );
       `);
 
-      // Create app_settings table for key-value configurations
-      await this.db.execute(`
-        CREATE TABLE IF NOT EXISTS app_settings (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL
-        );
-      `);
-
       this.isInitialized = true;
       return true;
     } catch (error) {
