@@ -1,3 +1,5 @@
+import { ViewStyle } from "react-native";
+
 export interface User {
   id: string;
   name: string;
@@ -135,5 +137,50 @@ export interface AppNotification {
   type: 'checkin' | 'checkout' | 'meeting' | 'summary' | 'alert';
   isRead: boolean;
 }
+export type FilterType = 'monthly' | 'weekly' | 'today' | 'custom';
+
+export type AttendanceStatus = 'present' | 'late' | 'half-day' | 'absent' | 'holiday';
 
 
+export interface AttendanceRecord {
+  id: string;
+  date: string;
+  rawDate?: string; // YYYY-MM-DD
+  timestamp?: number;
+  dayOfWeek?: string;
+  status: string;
+  statusType?: AttendanceStatus;
+  timeRange: string;
+  duration?: string;
+  location: string;
+  isHighlighted?: boolean;
+}
+
+export interface AttendanceGroup {
+  id: string;
+  sectionTitle: string;
+  records: AttendanceRecord[];
+  emptyState?: {
+    title: string;
+    description: string;
+    showClearFilter?: boolean;
+  };
+}
+
+export interface AttendanceHistoryProps {
+  style?: ViewStyle;
+  initialFilter?: FilterType;
+  initialSearchQuery?: string;
+  groups?: AttendanceGroup[];
+  onRecordPress?: (record: AttendanceRecord) => void;
+  onCustomRangePress?: () => void;
+}
+
+export interface DateRangeModalProps {
+  visible: boolean;
+  startDate: Date | null;
+  endDate: Date | null;
+  onClose: () => void;
+  onApply: (startDate: Date, endDate: Date) => void;
+  onReset?: () => void;
+}

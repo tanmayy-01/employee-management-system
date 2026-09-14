@@ -17,6 +17,7 @@ import { BottomTabBar } from '../../components/BottomTabBar';
 import { notificationService } from '../../services/notification.service';
 import { AppNotification } from '../../types';
 import { styles } from './Notifications.styles';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
 
 export const NotificationsScreen: React.FC = () => {
     const { user, navigate, currentScreen } = useAuth();
@@ -76,7 +77,7 @@ export const NotificationsScreen: React.FC = () => {
 
     const avatarUrl =
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
+        DEFAULT_AVATAR_URL
 
     const getIconConfig = (type: AppNotification['type']) => {
         switch (type) {

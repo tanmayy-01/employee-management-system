@@ -50,7 +50,7 @@ export const DashboardSkeleton: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            {/* Greeting Card Skeleton */}
+
             <View
                 style={[
                     styles.skeletonCard,
@@ -75,7 +75,7 @@ export const DashboardSkeleton: React.FC = () => {
                 />
             </View>
 
-            {/* Stat Card 1 Skeleton */}
+
             <View
                 style={[
                     styles.skeletonStatCard,
@@ -102,7 +102,6 @@ export const DashboardSkeleton: React.FC = () => {
                 </View>
             </View>
 
-            {/* Stat Card 2 Skeleton */}
             <View
                 style={[
                     styles.skeletonStatCard,
@@ -129,7 +128,7 @@ export const DashboardSkeleton: React.FC = () => {
                 </View>
             </View>
 
-            {/* Check-In Action Card Skeleton */}
+
             <View
                 style={[
                     styles.skeletonCheckInCard,
@@ -156,7 +155,7 @@ export const DashboardSkeleton: React.FC = () => {
                 />
             </View>
 
-            {/* Timeline Card Skeleton */}
+
             <View
                 style={[
                     styles.skeletonCard,

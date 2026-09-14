@@ -10,30 +10,11 @@ import {
 import { Calendar, DateData } from 'react-native-calendars';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../theme/ThemeContext';
+import { SHORT_MONTHS } from '../constants/attendance.constants';
+import { DateRangeModalProps } from '../types';
 
-export interface DateRangeModalProps {
-  visible: boolean;
-  startDate: Date | null;
-  endDate: Date | null;
-  onClose: () => void;
-  onApply: (startDate: Date, endDate: Date) => void;
-  onReset?: () => void;
-}
 
-const SHORT_MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+
 
 const toDateString = (d: Date): string => {
   const year = d.getFullYear();
@@ -117,7 +98,7 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
     }
   };
 
-  // Build markedDates object for react-native-calendars period marking
+  // markedDates object for react-native-calendars period marking
   const markedDates = useMemo(() => {
     const marks: Record<string, any> = {};
 
@@ -196,7 +177,7 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
   const formatDisplayDate = (str: string | null): string => {
     if (!str) return 'Select Date';
     const d = parseDateString(str);
-    return `${SHORT_MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    return `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   };
 
   return (
@@ -277,8 +258,8 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                     color: startStr
                       ? colors.textPrimary
                       : isDark
-                      ? colors.textTertiary
-                      : '#94A3B8',
+                        ? colors.textTertiary
+                        : '#94A3B8',
                   },
                 ]}
               >
@@ -304,10 +285,10 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                     color: endStr
                       ? colors.textPrimary
                       : startStr
-                      ? colors.textPrimary
-                      : isDark
-                      ? colors.textTertiary
-                      : '#94A3B8',
+                        ? colors.textPrimary
+                        : isDark
+                          ? colors.textTertiary
+                          : '#94A3B8',
                   },
                 ]}
               >
@@ -388,7 +369,7 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
             </TouchableOpacity>
           </ScrollView>
 
-          {/* react-native-calendars Calendar component with period marking */}
+
           <View
             style={[
               styles.calendarWrapper,
@@ -449,8 +430,8 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                   backgroundColor: startStr
                     ? colors.primary
                     : isDark
-                    ? colors.inputBackground
-                    : '#CBD5E1',
+                      ? colors.inputBackground
+                      : '#CBD5E1',
                 },
               ]}
               onPress={handleApply}

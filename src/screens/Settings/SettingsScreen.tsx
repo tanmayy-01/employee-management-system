@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { BottomTabBar } from '../../components/BottomTabBar';
 import { styles } from './Settings.styles';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
 
 const SettingsScreen: React.FC = () => {
     const { user, logout, navigate } = useAuth();
@@ -26,7 +27,7 @@ const SettingsScreen: React.FC = () => {
 
     const avatarUrl =
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
+        DEFAULT_AVATAR_URL
 
     const handleSignOut = () => {
         Alert.alert('Sign Out', 'Are you sure you want to sign out of WorkPulse?', [

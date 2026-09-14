@@ -26,7 +26,7 @@ export const RootNavigator: React.FC = () => {
   const screenFadeAnim = useRef(new Animated.Value(1)).current;
   const lastBackPressTime = useRef<number>(0);
 
-  // Fade transition on screen change
+
   useEffect(() => {
     screenFadeAnim.setValue(0.4);
     Animated.timing(screenFadeAnim, {
@@ -36,15 +36,13 @@ export const RootNavigator: React.FC = () => {
     }).start();
   }, [currentScreen, screenFadeAnim]);
 
-  // Handle hardware / physical back press on Android
   useEffect(() => {
     const handleHardwareBackPress = () => {
-      // 1. Splash screen: prevent back navigation during loading
       if (currentScreen === 'Splash') {
         return true;
       }
 
-      // 2. Root screens (Login or Dashboard / Home): Double press to exit app
+
       if (currentScreen === 'Login' || currentScreen === 'Dashboard' || currentScreen === 'Home') {
         const now = Date.now();
         if (now - lastBackPressTime.current < 2000) {
@@ -57,8 +55,6 @@ export const RootNavigator: React.FC = () => {
         }
         return true;
       }
-
-      // 3. Sub-screens: navigate back to previous screen
       goBack();
       return true;
     };

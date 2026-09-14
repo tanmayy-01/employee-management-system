@@ -21,9 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { employeeService } from '../../services/employee.service';
 import { styles } from './EditProfile.styles';
-
-const DEFAULT_AVATAR =
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
 
 export const EditProfileScreen: React.FC = () => {
     const { user, navigate, updateUserProfile, authError, clearAuthError } = useAuth();
@@ -33,7 +31,7 @@ export const EditProfileScreen: React.FC = () => {
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phone || '');
     const roleAndDepartment = `${user?.role || 'Employee'}, ${user?.department || 'General'}`;
-    const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || DEFAULT_AVATAR);
+    const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || DEFAULT_AVATAR_URL);
 
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -122,7 +120,7 @@ export const EditProfileScreen: React.FC = () => {
 
     const handleRemovePhoto = () => {
         setIsPhotoModalVisible(false);
-        setAvatarUrl(DEFAULT_AVATAR);
+        setAvatarUrl(DEFAULT_AVATAR_URL);
     };
 
 
@@ -533,7 +531,7 @@ export const EditProfileScreen: React.FC = () => {
                         </TouchableOpacity>
 
                         {/* Remove Photo (if avatar is not default) */}
-                        {avatarUrl !== DEFAULT_AVATAR ? (
+                        {avatarUrl !== DEFAULT_AVATAR_URL ? (
                             <TouchableOpacity
                                 style={[
                                     styles.modalOptionItem,

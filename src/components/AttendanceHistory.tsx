@@ -10,87 +10,17 @@ import {
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../theme/ThemeContext';
 import { DateRangeModal } from './DateRangeModal';
+import { AttendanceGroup, AttendanceHistoryProps, AttendanceStatus, FilterType } from '../types';
+import { filterOptions, SHORT_MONTHS } from '../constants/attendance.constants';
 
-export type FilterType = 'monthly' | 'weekly' | 'today' | 'custom';
 
-export type AttendanceStatus = 'present' | 'late' | 'half-day' | 'absent' | 'holiday';
 
-export interface AttendanceRecord {
-  id: string;
-  date: string;
-  rawDate?: string; // YYYY-MM-DD
-  timestamp?: number;
-  dayOfWeek?: string;
-  status: string;
-  statusType?: AttendanceStatus;
-  timeRange: string;
-  duration?: string;
-  location: string;
-  isHighlighted?: boolean;
-}
-
-export interface AttendanceGroup {
-  id: string;
-  sectionTitle: string;
-  records: AttendanceRecord[];
-  emptyState?: {
-    title: string;
-    description: string;
-    showClearFilter?: boolean;
-  };
-}
-
-export interface AttendanceHistoryProps {
-  style?: ViewStyle;
-  initialFilter?: FilterType;
-  initialSearchQuery?: string;
-  groups?: AttendanceGroup[];
-  onRecordPress?: (record: AttendanceRecord) => void;
-  onCustomRangePress?: () => void;
-}
-
-const DEFAULT_ATTENDANCE_GROUPS: AttendanceGroup[] = [
-  {
-    id: 'oct-2023',
-    sectionTitle: 'October 2023',
-    records: [
-      {
-        id: 'rec-1',
-        date: 'Oct 24, Tue',
-        status: 'Present',
-        statusType: 'present',
-        timeRange: '08:50 AM - 05:15 PM (8h 25m)',
-        location: 'HQ Office, San Francisco',
-        isHighlighted: true,
-      },
-      {
-        id: 'rec-2',
-        date: 'Oct 23, Mon',
-        status: 'Present',
-        statusType: 'present',
-        timeRange: '09:05 AM - 06:00 PM (8h 55m)',
-        location: 'Remote (Home Office)',
-        isHighlighted: false,
-      },
-    ],
-  },
-  {
-    id: 'sep-2023-range',
-    sectionTitle: 'Sep 11 - Sep 15',
-    records: [],
-    emptyState: {
-      title: 'No records found',
-      description: 'You have no attendance logs for this selected time period.',
-      showClearFilter: true,
-    },
-  },
-];
 
 export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   style,
   initialFilter = 'monthly',
   initialSearchQuery = '',
-  groups = DEFAULT_ATTENDANCE_GROUPS,
+  groups = [],
   onRecordPress,
   onCustomRangePress,
 }) => {
@@ -101,11 +31,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
 
-  const filterOptions: { key: FilterType; label: string; icon?: string }[] = [
-    { key: 'monthly', label: 'Monthly' },
-    { key: 'weekly', label: 'Weekly' },
-    { key: 'today', label: 'Today' },
-  ];
+
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -128,9 +54,8 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
 
   const formatCustomPillLabel = (): string => {
     if (customStartDate && customEndDate) {
-      const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const startStr = `${shortMonths[customStartDate.getMonth()]} ${customStartDate.getDate()}`;
-      const endStr = `${shortMonths[customEndDate.getMonth()]} ${customEndDate.getDate()}`;
+      const startStr = `${SHORT_MONTHS[customStartDate.getMonth()]} ${customStartDate.getDate()}`;
+      const endStr = `${SHORT_MONTHS[customEndDate.getMonth()]} ${customEndDate.getDate()}`;
       return startStr === endStr ? startStr : `${startStr} - ${endStr}`;
     }
     return 'Custom Range';
@@ -158,26 +83,26 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     // Custom date range timestamps
     const customStartMs = customStartDate
       ? new Date(
-          customStartDate.getFullYear(),
-          customStartDate.getMonth(),
-          customStartDate.getDate(),
-          0,
-          0,
-          0,
-          0
-        ).getTime()
+        customStartDate.getFullYear(),
+        customStartDate.getMonth(),
+        customStartDate.getDate(),
+        0,
+        0,
+        0,
+        0
+      ).getTime()
       : null;
 
     const customEndMs = customEndDate
       ? new Date(
-          customEndDate.getFullYear(),
-          customEndDate.getMonth(),
-          customEndDate.getDate(),
-          23,
-          59,
-          59,
-          999
-        ).getTime()
+        customEndDate.getFullYear(),
+        customEndDate.getMonth(),
+        customEndDate.getDate(),
+        23,
+        59,
+        59,
+        999
+      ).getTime()
       : null;
 
     const result = groups
@@ -198,8 +123,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                 return false;
               }
             } else {
-              const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const todayStr = `${shortMonths[now.getMonth()]} ${now.getDate()}`;
+              const todayStr = `${SHORT_MONTHS[now.getMonth()]} ${now.getDate()}`;
               if (!record.date.includes(todayStr)) return false;
             }
           } else if (activeFilter === 'weekly') {
@@ -272,10 +196,10 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
             activeFilter === 'today'
               ? 'Today'
               : activeFilter === 'weekly'
-              ? 'This Week'
-              : activeFilter === 'custom'
-              ? formatCustomPillLabel()
-              : 'Attendance Records',
+                ? 'This Week'
+                : activeFilter === 'custom'
+                  ? formatCustomPillLabel()
+                  : 'Attendance Records',
           records: [],
           emptyState: {
             title: emptyTitle,
@@ -377,12 +301,12 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                   isActive
                     ? [styles.filterPillActive, { backgroundColor: colors.primary }]
                     : [
-                        styles.filterPillInactive,
-                        {
-                          backgroundColor: isDark ? colors.card : '#F1F5F9',
-                          borderColor: isDark ? colors.cardBorder : '#E2E8F0',
-                        },
-                      ],
+                      styles.filterPillInactive,
+                      {
+                        backgroundColor: isDark ? colors.card : '#F1F5F9',
+                        borderColor: isDark ? colors.cardBorder : '#E2E8F0',
+                      },
+                    ],
                 ]}
                 onPress={() => {
                   setActiveFilter(filter.key);
@@ -395,9 +319,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                     isActive
                       ? styles.filterPillTextActive
                       : [
-                          styles.filterPillTextInactive,
-                          { color: isDark ? colors.textSecondary : '#475569' },
-                        ],
+                        styles.filterPillTextInactive,
+                        { color: isDark ? colors.textSecondary : '#475569' },
+                      ],
                   ]}
                 >
                   {filter.label}
@@ -415,12 +339,12 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
             activeFilter === 'custom'
               ? [styles.filterPillActive, { backgroundColor: colors.primary }]
               : [
-                  styles.filterPillInactive,
-                  {
-                    backgroundColor: isDark ? colors.card : '#F1F5F9',
-                    borderColor: isDark ? colors.cardBorder : '#E2E8F0',
-                  },
-                ],
+                styles.filterPillInactive,
+                {
+                  backgroundColor: isDark ? colors.card : '#F1F5F9',
+                  borderColor: isDark ? colors.cardBorder : '#E2E8F0',
+                },
+              ],
           ]}
           onPress={() => {
             setIsCalendarModalVisible(true);
@@ -435,8 +359,8 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
               activeFilter === 'custom'
                 ? '#FFFFFF'
                 : isDark
-                ? colors.textSecondary
-                : '#475569'
+                  ? colors.textSecondary
+                  : '#475569'
             }
             style={styles.customRangeIconLeft}
           />
@@ -446,9 +370,9 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
               activeFilter === 'custom'
                 ? styles.filterPillTextActive
                 : [
-                    styles.filterPillTextInactive,
-                    { color: isDark ? colors.textSecondary : '#475569' },
-                  ],
+                  styles.filterPillTextInactive,
+                  { color: isDark ? colors.textSecondary : '#475569' },
+                ],
             ]}
           >
             {formatCustomPillLabel()}
@@ -512,17 +436,17 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                           styles.timelineDot,
                           isRecordHighlighted
                             ? [
-                                styles.timelineDotActive,
-                                { backgroundColor: colors.primary },
-                              ]
+                              styles.timelineDotActive,
+                              { backgroundColor: colors.primary },
+                            ]
                             : [
-                                styles.timelineDotInactive,
-                                {
-                                  backgroundColor: isDark
-                                    ? colors.inputBorder
-                                    : '#CBD5E1',
-                                },
-                              ],
+                              styles.timelineDotInactive,
+                              {
+                                backgroundColor: isDark
+                                  ? colors.inputBorder
+                                  : '#CBD5E1',
+                              },
+                            ],
                         ]}
                       />
                     </View>

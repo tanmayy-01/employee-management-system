@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useTheme } from '../theme/ThemeContext';
+import { DAYS_OF_WEEK, SHORT_MONTHS } from '../constants/attendance.constants';
 
 export interface CheckInOutCardProps {
   variant?: 'session' | 'full';
@@ -35,7 +36,7 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync prop changes
+
   useEffect(() => {
     setCheckedIn(isCheckedIn);
     if (initialSessionSeconds > 0) {
@@ -43,7 +44,7 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
     }
   }, [isCheckedIn, initialSessionSeconds]);
 
-  // Session duration timer
+
   useEffect(() => {
     if (!checkedIn) return;
 
@@ -54,7 +55,6 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
     return () => clearInterval(interval);
   }, [checkedIn]);
 
-  // Real-time clock for full variant
   useEffect(() => {
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
@@ -67,9 +67,8 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${
-      seconds < 10 ? '0' : ''
-    }${seconds}`;
+    return `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''
+      }${seconds}`;
   };
 
   const formatClockTime = (date: Date) => {
@@ -79,21 +78,8 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   };
 
   const formatDate = (date: Date) => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
+    const days = DAYS_OF_WEEK;
+    const months = SHORT_MONTHS;
     return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
   };
 
@@ -116,9 +102,6 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   };
 
 
-  // -------------------------------------------------------------
-  // Variant: "session" and checked-in
-  // -------------------------------------------------------------
   if (variant === 'session' && checkedIn) {
     return (
       <View
@@ -169,9 +152,7 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
     );
   }
 
-  // -------------------------------------------------------------
-  // Ready to Check In State (Matches provided UI screenshot)
-  // -------------------------------------------------------------
+
   return (
     <View
       style={[
@@ -311,7 +292,6 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // Session Variant Styles
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,

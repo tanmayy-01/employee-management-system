@@ -18,6 +18,7 @@ import { attendanceService, RecentActivity } from '../../services/attendance.ser
 import { notificationService } from '../../services/notification.service';
 import { AttendanceStats } from '../../types';
 import { styles } from './Attendance.styles';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
 
 export const AttendanceScreen: React.FC = () => {
     const { user, navigate, currentScreen } = useAuth();
@@ -83,7 +84,7 @@ export const AttendanceScreen: React.FC = () => {
 
     const avatarUrl =
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
+        DEFAULT_AVATAR_URL
 
     const handleNavigateToHistory = () => {
         navigate('AttendanceHistory');
@@ -266,8 +267,8 @@ export const AttendanceScreen: React.FC = () => {
                                                             activity.type === 'in'
                                                                 ? '#10B981'
                                                                 : isDark
-                                                                ? colors.inputBorder
-                                                                : '#CBD5E1',
+                                                                    ? colors.inputBorder
+                                                                    : '#CBD5E1',
                                                     },
                                                 ]}
                                             />

@@ -18,6 +18,7 @@ import { BottomTabBar } from '../../components/BottomTabBar';
 import { employeeService } from '../../services/employee.service';
 import { Employee } from '../../types';
 import { styles } from './Profile.styles';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
 
 export const ProfileScreen: React.FC = () => {
     const { user, logout, navigate, currentScreen } = useAuth();
@@ -62,8 +63,7 @@ export const ProfileScreen: React.FC = () => {
     const userJoinDate = employee?.joinDate || user?.joinDate || 'Active';
     const avatarUrl =
         employee?.avatarUrl ||
-        user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+        user?.avatarUrl || DEFAULT_AVATAR_URL;
 
 
     const handleEditProfile = () => {

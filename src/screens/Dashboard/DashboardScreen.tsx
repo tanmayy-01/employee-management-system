@@ -21,6 +21,8 @@ import { attendanceService } from '../../services/attendance.service';
 import { notificationService } from '../../services/notification.service';
 import { Employee, AttendanceStats } from '../../types';
 import { styles } from './Dashboard.styles';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
+import { DAYS_OF_WEEK, MONTHS } from '../../constants/attendance.constants';
 
 const DashboardScreen: React.FC = () => {
     const { user, navigate, currentScreen, reloadUserProfile } = useAuth();
@@ -119,26 +121,11 @@ const DashboardScreen: React.FC = () => {
     const avatarUrl =
         employee?.avatarUrl ||
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
+        DEFAULT_AVATAR_URL
 
     const getCurrentDateFormatted = () => {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const months = [
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December',
-        ];
         const now = new Date();
-        return `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+        return `${DAYS_OF_WEEK[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
     };
 
     const initialSessionSeconds = attendanceStats?.activeSession
@@ -329,8 +316,8 @@ const DashboardScreen: React.FC = () => {
                                         {isCheckedIn
                                             ? 'Checked In (Active Session)'
                                             : (attendanceStats?.todaySessionsCount || 0) > 0
-                                            ? 'Checked Out'
-                                            : 'Not Checked In Yet'}
+                                                ? 'Checked Out'
+                                                : 'Not Checked In Yet'}
                                     </Text>
                                     <View style={styles.timelineLocationRow}>
                                         <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
@@ -338,8 +325,8 @@ const DashboardScreen: React.FC = () => {
                                             {isCheckedIn
                                                 ? `${attendanceStats?.lastCheckInLocation || 'Main Office'} • Started ${attendanceStats?.lastCheckInFormatted || ''}`
                                                 : (attendanceStats?.todaySessionsCount || 0) > 0
-                                                ? `${todayHoursText} worked across ${attendanceStats?.todaySessionsCount} session(s) today`
-                                                : 'Main Office • Ready for check-in'}
+                                                    ? `${todayHoursText} worked across ${attendanceStats?.todaySessionsCount} session(s) today`
+                                                    : 'Main Office • Ready for check-in'}
                                         </Text>
                                     </View>
                                 </View>

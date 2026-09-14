@@ -12,11 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
-import { AttendanceHistory, AttendanceGroup } from '../../components/AttendanceHistory';
+import { AttendanceHistory } from '../../components/AttendanceHistory';
 import { BottomTabBar } from '../../components/BottomTabBar';
 import { attendanceService } from '../../services/attendance.service';
 import { notificationService } from '../../services/notification.service';
 import { styles } from './AttendanceHistory.styles';
+import { DEFAULT_AVATAR_URL } from '../../constants/profile.constants';
+import { AttendanceGroup } from '../../types';
 
 export const AttendanceHistoryScreen: React.FC = () => {
     const { user, navigate, goBack, currentScreen } = useAuth();
@@ -74,7 +76,7 @@ export const AttendanceHistoryScreen: React.FC = () => {
 
     const avatarUrl =
         user?.avatarUrl ||
-        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80';
+        DEFAULT_AVATAR_URL
 
     return (
         <SafeAreaView
