@@ -29,6 +29,7 @@ const DashboardScreen: React.FC = () => {
     const { colors, isDark } = useTheme();
     const [employee, setEmployee] = useState<Employee | null>(null);
     const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -52,6 +53,7 @@ const DashboardScreen: React.FC = () => {
             if (stats) {
                 setAttendanceStats(stats);
                 setIsCheckedIn(stats.isCheckedIn);
+                setIsPaused(Boolean(stats.isPaused));
             }
             setUnreadCount(unread || 0);
         } catch (error) {
@@ -94,6 +96,7 @@ const DashboardScreen: React.FC = () => {
             const updatedStats = await attendanceService.getAttendanceStats(targetId);
             setAttendanceStats(updatedStats);
             setIsCheckedIn(true);
+            setIsPaused(false);
         } catch (error: any) {
             Alert.alert('Check In Notice', error?.message || 'Could not check in.');
         }
@@ -108,8 +111,37 @@ const DashboardScreen: React.FC = () => {
             const updatedStats = await attendanceService.getAttendanceStats(targetId);
             setAttendanceStats(updatedStats);
             setIsCheckedIn(false);
+            setIsPaused(false);
         } catch (error: any) {
             Alert.alert('Check Out Notice', error?.message || 'Could not check out.');
+        }
+    };
+
+    const handlePause = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.pauseSession(targetId);
+            const updatedStats = await attendanceService.getAttendanceStats(targetId);
+            setAttendanceStats(updatedStats);
+            setIsPaused(true);
+        } catch (error: any) {
+            Alert.alert('Pause Notice', error?.message || 'Could not pause session.');
+        }
+    };
+
+    const handleResume = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.resumeSession(targetId);
+            const updatedStats = await attendanceService.getAttendanceStats(targetId);
+            setAttendanceStats(updatedStats);
+            setIsPaused(false);
+        } catch (error: any) {
+            Alert.alert('Resume Notice', error?.message || 'Could not resume session.');
         }
     };
 
@@ -128,9 +160,7 @@ const DashboardScreen: React.FC = () => {
         return `${DAYS_OF_WEEK[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
     };
 
-    const initialSessionSeconds = attendanceStats?.activeSession
-        ? Math.max(0, Math.floor((Date.now() - attendanceStats.activeSession.checkInTime) / 1000))
-        : 0;
+    const initialSessionSeconds = attendanceStats?.sessionWorkedSeconds ?? 0;
 
     const todayHoursText = attendanceStats?.todayHoursFormatted || '0h 0m';
     const weekHoursText = attendanceStats?.weekHoursFormatted || '0h 0m';
@@ -283,11 +313,14 @@ const DashboardScreen: React.FC = () => {
                         <CheckInOutCard
                             variant="session"
                             isCheckedIn={isCheckedIn}
+                            isPaused={isPaused}
                             todayHours={todayHoursText}
                             weekHours={weekHoursText}
                             initialSessionSeconds={initialSessionSeconds}
                             onCheckIn={handleCheckIn}
                             onCheckOut={handleCheckOut}
+                            onPause={handlePause}
+                            onResume={handleResume}
                         />
 
                         {/* Today's Timeline Card */}
@@ -308,13 +341,23 @@ const DashboardScreen: React.FC = () => {
                                 <Ionicons
                                     name={isCheckedIn ? 'radio-button-on' : 'radio-button-off'}
                                     size={20}
-                                    color={isCheckedIn ? colors.primary : isDark ? colors.textTertiary : '#94A3B8'}
+                                    color={
+                                        isCheckedIn
+                                            ? isPaused
+                                                ? '#F59E0B'
+                                                : colors.primary
+                                            : isDark
+                                            ? colors.textTertiary
+                                            : '#94A3B8'
+                                    }
                                     style={styles.timelineDotIcon}
                                 />
                                 <View style={styles.timelineContent}>
                                     <Text style={[styles.timelineItemTitle, { color: colors.textPrimary }]}>
                                         {isCheckedIn
-                                            ? 'Checked In (Active Session)'
+                                            ? isPaused
+                                                ? 'On Break (Session Paused)'
+                                                : 'Checked In (Active Session)'
                                             : (attendanceStats?.todaySessionsCount || 0) > 0
                                                 ? 'Checked Out'
                                                 : 'Not Checked In Yet'}

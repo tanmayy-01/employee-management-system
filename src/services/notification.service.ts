@@ -108,7 +108,7 @@ class NotificationService {
     employeeId: string;
     title: string;
     description: string;
-    type: 'checkin' | 'checkout' | 'meeting' | 'summary' | 'alert';
+    type: AppNotification['type'];
   }): Promise<AppNotification> {
     await this.initNotificationTable();
 

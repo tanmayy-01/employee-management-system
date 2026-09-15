@@ -105,6 +105,12 @@ export const NotificationsScreen: React.FC = () => {
                     color: isDark ? colors.textSecondary : '#64748B',
                     bgColor: isDark ? colors.inputBackground : '#EDF2F7',
                 };
+            case 'break':
+                return {
+                    name: 'pause-circle-outline',
+                    color: '#D97706',
+                    bgColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7',
+                };
             case 'alert':
                 return {
                     name: 'warning-outline',

@@ -1,12 +1,12 @@
 import { open, DB } from '@op-engineering/op-sqlite';
-import { AttendanceLog, AttendanceStats } from '../types';
+import { AttendanceBreak, AttendanceLog, AttendanceStats } from '../types';
 import { notificationService } from './notification.service';
 
 const DB_NAME = 'workpulse_auth.db';
 
 export interface RecentActivity {
   id: string;
-  type: 'in' | 'out';
+  type: 'in' | 'out' | 'pause' | 'resume';
   title: string;
   location: string;
   time: string;
@@ -17,9 +17,10 @@ class AttendanceService {
   private db: DB | null = null;
   private isInitialized = false;
   private memoryLogs: Map<string, AttendanceLog> = new Map();
+  private memoryBreaks: Map<string, AttendanceBreak> = new Map();
 
   /**
-   * Initialize SQLite attendance table
+   * Initialize SQLite attendance & breaks tables
    */
   public async initAttendanceTable(): Promise<boolean> {
     if (this.isInitialized && this.db) {
@@ -45,10 +46,27 @@ class AttendanceService {
         );
       `);
 
+      await this.db.execute(`
+        CREATE TABLE IF NOT EXISTS attendance_breaks (
+          id TEXT PRIMARY KEY,
+          attendance_id TEXT NOT NULL,
+          employee_id TEXT NOT NULL,
+          date TEXT NOT NULL,
+          start_time INTEGER NOT NULL,
+          end_time INTEGER,
+          duration_seconds INTEGER DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      `);
+
       // Create index for fast lookups by employee and date
       try {
         await this.db.execute(`
           CREATE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance_logs (employee_id, date);
+        `);
+        await this.db.execute(`
+          CREATE INDEX IF NOT EXISTS idx_breaks_emp_date ON attendance_breaks (employee_id, date);
         `);
       } catch {}
 
@@ -249,6 +267,339 @@ class AttendanceService {
   }
 
   /**
+   * Get the currently active (open) break for an employee
+   */
+  public async getActiveBreak(employeeId: string): Promise<AttendanceBreak | null> {
+    if (!employeeId) return null;
+    await this.initAttendanceTable();
+
+    // Check memory cache first
+    for (const brk of this.memoryBreaks.values()) {
+      if (brk.employeeId === employeeId && brk.endTime === null) {
+        return brk;
+      }
+    }
+
+    if (!this.db) {
+      return null;
+    }
+
+    try {
+      const result = await this.db.execute(
+        `SELECT * FROM attendance_breaks 
+         WHERE employee_id = ? AND end_time IS NULL 
+         ORDER BY start_time DESC LIMIT 1;`,
+        [employeeId]
+      );
+
+      if (result.rows && result.rows.length > 0) {
+        const row = result.rows[0] as Record<string, any>;
+        const brk: AttendanceBreak = {
+          id: String(row.id),
+          attendanceId: String(row.attendance_id),
+          employeeId: String(row.employee_id),
+          date: String(row.date),
+          startTime: Number(row.start_time),
+          endTime: row.end_time ? Number(row.end_time) : null,
+          durationSeconds: Number(row.duration_seconds || 0),
+          createdAt: Number(row.created_at || Date.now()),
+          updatedAt: Number(row.updated_at || Date.now()),
+        };
+        this.memoryBreaks.set(brk.id, brk);
+        return brk;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Failed to get active break from SQLite:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if employee is currently paused / on break
+   */
+  public async isOnBreak(employeeId: string): Promise<boolean> {
+    const active = await this.getActiveBreak(employeeId);
+    return active !== null;
+  }
+
+  /**
+   * Pause the active attendance session (Start a break)
+   */
+  public async pauseSession(employeeId: string): Promise<AttendanceBreak> {
+    if (!employeeId) {
+      throw new Error('Employee ID is required to pause session.');
+    }
+
+    await this.initAttendanceTable();
+
+    const activeSession = await this.getActiveSession(employeeId);
+    if (!activeSession) {
+      throw new Error('You must be checked in to pause and take a break.');
+    }
+
+    const currentBreak = await this.getActiveBreak(employeeId);
+    if (currentBreak) {
+      throw new Error('Session is already paused (on break).');
+    }
+
+    const now = Date.now();
+    const today = this.getTodayDateString(now);
+    const breakId = 'brk_' + now + '_' + Math.random().toString(36).substring(2, 7);
+
+    const newBreak: AttendanceBreak = {
+      id: breakId,
+      attendanceId: activeSession.id,
+      employeeId,
+      date: today,
+      startTime: now,
+      endTime: null,
+      durationSeconds: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.memoryBreaks.set(newBreak.id, newBreak);
+
+    if (this.db) {
+      try {
+        await this.db.execute(
+          `INSERT INTO attendance_breaks (
+            id, attendance_id, employee_id, date, start_time, end_time, duration_seconds, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, NULL, 0, ?, ?);`,
+          [
+            newBreak.id,
+            newBreak.attendanceId,
+            newBreak.employeeId,
+            newBreak.date,
+            newBreak.startTime,
+            newBreak.createdAt,
+            newBreak.updatedAt,
+          ]
+        );
+      } catch (error) {
+        console.error('Failed to insert break record into SQLite:', error);
+      }
+    }
+
+    // Send notification
+    try {
+      const breakTimeFormatted = this.formatTimeOnly(now);
+      await notificationService.addNotification({
+        employeeId,
+        title: 'Break Started (Paused)',
+        description: `Work session paused at ${breakTimeFormatted}.`,
+        type: 'break',
+      });
+    } catch (notifErr) {
+      console.warn('Failed to send break start notification:', notifErr);
+    }
+
+    return newBreak;
+  }
+
+  /**
+   * Resume the active attendance session (End the active break)
+   */
+  public async resumeSession(employeeId: string): Promise<AttendanceBreak> {
+    if (!employeeId) {
+      throw new Error('Employee ID is required to resume session.');
+    }
+
+    await this.initAttendanceTable();
+
+    const activeBreak = await this.getActiveBreak(employeeId);
+    if (!activeBreak) {
+      throw new Error('No active break found to resume.');
+    }
+
+    const now = Date.now();
+    const durationSeconds = Math.max(0, Math.floor((now - activeBreak.startTime) / 1000));
+
+    const updatedBreak: AttendanceBreak = {
+      ...activeBreak,
+      endTime: now,
+      durationSeconds,
+      updatedAt: now,
+    };
+
+    this.memoryBreaks.set(updatedBreak.id, updatedBreak);
+
+    if (this.db) {
+      try {
+        await this.db.execute(
+          `UPDATE attendance_breaks 
+           SET end_time = ?, duration_seconds = ?, updated_at = ?
+           WHERE id = ?;`,
+          [now, durationSeconds, now, updatedBreak.id]
+        );
+      } catch (error) {
+        console.error('Failed to update break record in SQLite:', error);
+      }
+    }
+
+    // Send notification
+    try {
+      const resumeTimeFormatted = this.formatTimeOnly(now);
+      const breakDurationFormatted = this.formatSecondsToHoursMinutes(durationSeconds);
+      await notificationService.addNotification({
+        employeeId,
+        title: 'Resumed Work',
+        description: `Session resumed at ${resumeTimeFormatted} (Break: ${breakDurationFormatted}).`,
+        type: 'break',
+      });
+    } catch (notifErr) {
+      console.warn('Failed to send break resume notification:', notifErr);
+    }
+
+    return updatedBreak;
+  }
+
+  /**
+   * Get breaks for a specific attendance session
+   */
+  public async getBreaksForSession(attendanceId: string): Promise<AttendanceBreak[]> {
+    if (!attendanceId) return [];
+    await this.initAttendanceTable();
+
+    if (!this.db) {
+      const list: AttendanceBreak[] = [];
+      for (const brk of this.memoryBreaks.values()) {
+        if (brk.attendanceId === attendanceId) {
+          list.push(brk);
+        }
+      }
+      return list.sort((a, b) => a.startTime - b.startTime);
+    }
+
+    try {
+      const result = await this.db.execute(
+        `SELECT * FROM attendance_breaks 
+         WHERE attendance_id = ? 
+         ORDER BY start_time ASC;`,
+        [attendanceId]
+      );
+
+      if (result.rows && result.rows.length > 0) {
+        return (result.rows as Record<string, any>[]).map((row) => ({
+          id: String(row.id),
+          attendanceId: String(row.attendance_id),
+          employeeId: String(row.employee_id),
+          date: String(row.date),
+          startTime: Number(row.start_time),
+          endTime: row.end_time ? Number(row.end_time) : null,
+          durationSeconds: Number(row.duration_seconds || 0),
+          createdAt: Number(row.created_at || Date.now()),
+          updatedAt: Number(row.updated_at || Date.now()),
+        }));
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Failed to get breaks for session from SQLite:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all break logs for an employee on a given date (default today)
+   */
+  public async getTodayBreaks(
+    employeeId: string,
+    targetDate?: string
+  ): Promise<AttendanceBreak[]> {
+    if (!employeeId) return [];
+    await this.initAttendanceTable();
+
+    const date = targetDate || this.getTodayDateString();
+
+    if (!this.db) {
+      const list: AttendanceBreak[] = [];
+      for (const brk of this.memoryBreaks.values()) {
+        if (brk.employeeId === employeeId && brk.date === date) {
+          list.push(brk);
+        }
+      }
+      return list.sort((a, b) => a.startTime - b.startTime);
+    }
+
+    try {
+      const result = await this.db.execute(
+        `SELECT * FROM attendance_breaks 
+         WHERE employee_id = ? AND date = ? 
+         ORDER BY start_time ASC;`,
+        [employeeId, date]
+      );
+
+      if (result.rows && result.rows.length > 0) {
+        return (result.rows as Record<string, any>[]).map((row) => ({
+          id: String(row.id),
+          attendanceId: String(row.attendance_id),
+          employeeId: String(row.employee_id),
+          date: String(row.date),
+          startTime: Number(row.start_time),
+          endTime: row.end_time ? Number(row.end_time) : null,
+          durationSeconds: Number(row.duration_seconds || 0),
+          createdAt: Number(row.created_at || Date.now()),
+          updatedAt: Number(row.updated_at || Date.now()),
+        }));
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Failed to get today breaks from SQLite:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all breaks for an employee
+   */
+  public async getAllBreaks(employeeId: string): Promise<AttendanceBreak[]> {
+    if (!employeeId) return [];
+    await this.initAttendanceTable();
+
+    if (!this.db) {
+      const list: AttendanceBreak[] = [];
+      for (const brk of this.memoryBreaks.values()) {
+        if (brk.employeeId === employeeId) {
+          list.push(brk);
+        }
+      }
+      return list.sort((a, b) => a.startTime - b.startTime);
+    }
+
+    try {
+      const result = await this.db.execute(
+        `SELECT * FROM attendance_breaks 
+         WHERE employee_id = ? 
+         ORDER BY start_time DESC;`,
+        [employeeId]
+      );
+
+      if (result.rows && result.rows.length > 0) {
+        return (result.rows as Record<string, any>[]).map((row) => ({
+          id: String(row.id),
+          attendanceId: String(row.attendance_id),
+          employeeId: String(row.employee_id),
+          date: String(row.date),
+          startTime: Number(row.start_time),
+          endTime: row.end_time ? Number(row.end_time) : null,
+          durationSeconds: Number(row.duration_seconds || 0),
+          createdAt: Number(row.created_at || Date.now()),
+          updatedAt: Number(row.updated_at || Date.now()),
+        }));
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Failed to get all breaks from SQLite:', error);
+      return [];
+    }
+  }
+
+  /**
    * Check Out an employee
    * RULE: Cannot Check Out before Check In.
    */
@@ -269,7 +620,43 @@ class AttendanceService {
     }
 
     const now = Date.now();
-    const durationSeconds = Math.max(0, Math.floor((now - activeSession.checkInTime) / 1000));
+
+    // If currently on break when checking out, automatically close active break
+    const activeBreak = await this.getActiveBreak(employeeId);
+    if (activeBreak) {
+      const breakDuration = Math.max(0, Math.floor((now - activeBreak.startTime) / 1000));
+      const updatedBreak: AttendanceBreak = {
+        ...activeBreak,
+        endTime: now,
+        durationSeconds: breakDuration,
+        updatedAt: now,
+      };
+      this.memoryBreaks.set(updatedBreak.id, updatedBreak);
+      if (this.db) {
+        try {
+          await this.db.execute(
+            `UPDATE attendance_breaks SET end_time = ?, duration_seconds = ?, updated_at = ? WHERE id = ?;`,
+            [now, breakDuration, now, updatedBreak.id]
+          );
+        } catch (err) {
+          console.error('Failed to close active break on checkout in SQLite:', err);
+        }
+      }
+    }
+
+    // Calculate total break duration for this session
+    const sessionBreaks = await this.getBreaksForSession(activeSession.id);
+    let totalSessionBreakSeconds = 0;
+    for (const b of sessionBreaks) {
+      if (b.endTime) {
+        totalSessionBreakSeconds += b.durationSeconds;
+      } else {
+        totalSessionBreakSeconds += Math.max(0, Math.floor((now - b.startTime) / 1000));
+      }
+    }
+
+    const elapsedSeconds = Math.max(0, Math.floor((now - activeSession.checkInTime) / 1000));
+    const durationSeconds = Math.max(0, elapsedSeconds - totalSessionBreakSeconds);
 
     // Determine status (e.g. present, half-day)
     const status = durationSeconds >= 4 * 3600 ? 'present' : 'present';
@@ -379,24 +766,39 @@ class AttendanceService {
   }
 
   /**
-   * Calculate total worked seconds today (sum of completed sessions + running active session)
+   * Calculate total worked seconds today (sum of completed sessions + running active session minus breaks)
    */
   public async getTodayWorkedSeconds(employeeId: string): Promise<number> {
     const sessions = await this.getTodaySessions(employeeId);
+    const todayBreaks = await this.getTodayBreaks(employeeId);
     const now = Date.now();
-    let totalSeconds = 0;
+    let totalSessionSeconds = 0;
+    let totalBreakSeconds = 0;
 
     for (const session of sessions) {
       if (session.checkOutTime) {
-        totalSeconds += session.durationSeconds;
+        totalSessionSeconds += session.durationSeconds;
       } else {
-        // Active session currently in progress
-        const running = Math.max(0, Math.floor((now - session.checkInTime) / 1000));
-        totalSeconds += running;
+        // Active session currently in progress: elapsed time
+        totalSessionSeconds += Math.max(0, Math.floor((now - session.checkInTime) / 1000));
       }
     }
 
-    return totalSeconds;
+    for (const brk of todayBreaks) {
+      // If session is active and break is active or finished today
+      if (brk.endTime) {
+        // For completed sessions, duration_seconds in attendance_logs already excluded breaks at checkout.
+        // So we only subtract breaks belonging to active session
+        const session = sessions.find((s) => s.id === brk.attendanceId);
+        if (session && !session.checkOutTime) {
+          totalBreakSeconds += brk.durationSeconds;
+        }
+      } else {
+        totalBreakSeconds += Math.max(0, Math.floor((now - brk.startTime) / 1000));
+      }
+    }
+
+    return Math.max(0, totalSessionSeconds - totalBreakSeconds);
   }
 
   /**
@@ -422,7 +824,16 @@ class AttendanceService {
           if (log.checkOutTime) {
             total += log.durationSeconds;
           } else {
-            total += Math.max(0, Math.floor((curTime - log.checkInTime) / 1000));
+            // Subtract active session breaks
+            let activeBreakSec = 0;
+            for (const b of this.memoryBreaks.values()) {
+              if (b.attendanceId === log.id) {
+                if (b.endTime) activeBreakSec += b.durationSeconds;
+                else activeBreakSec += Math.max(0, Math.floor((curTime - b.startTime) / 1000));
+              }
+            }
+            const elapsed = Math.max(0, Math.floor((curTime - log.checkInTime) / 1000));
+            total += Math.max(0, elapsed - activeBreakSec);
           }
         }
       }
@@ -444,7 +855,15 @@ class AttendanceService {
           if (row.check_out_time) {
             total += Number(row.duration_seconds || 0);
           } else {
-            total += Math.max(0, Math.floor((curTime - Number(row.check_in_time)) / 1000));
+            const attId = String(row.id);
+            const breaks = await this.getBreaksForSession(attId);
+            let activeBreakSec = 0;
+            for (const b of breaks) {
+              if (b.endTime) activeBreakSec += b.durationSeconds;
+              else activeBreakSec += Math.max(0, Math.floor((curTime - b.startTime) / 1000));
+            }
+            const elapsed = Math.max(0, Math.floor((curTime - Number(row.check_in_time)) / 1000));
+            total += Math.max(0, elapsed - activeBreakSec);
           }
         }
       }
@@ -464,9 +883,37 @@ class AttendanceService {
     targetDailyHours: number = 8
   ): Promise<AttendanceStats> {
     const activeSession = await this.getActiveSession(employeeId);
+    const activeBreak = await this.getActiveBreak(employeeId);
+    const isPaused = activeBreak !== null;
+
     const todaySessions = await this.getTodaySessions(employeeId);
+    const todayBreaks = await this.getTodayBreaks(employeeId);
     const todaySeconds = await this.getTodayWorkedSeconds(employeeId);
     const weekSeconds = await this.getWeekWorkedSeconds(employeeId);
+
+    const now = Date.now();
+    let todayBreakSeconds = 0;
+    for (const b of todayBreaks) {
+      if (b.endTime) {
+        todayBreakSeconds += b.durationSeconds;
+      } else {
+        todayBreakSeconds += Math.max(0, Math.floor((now - b.startTime) / 1000));
+      }
+    }
+
+    // Calculate worked seconds specifically for current active session
+    let sessionWorkedSeconds = 0;
+    if (activeSession) {
+      const elapsed = Math.max(0, Math.floor((now - activeSession.checkInTime) / 1000));
+      let currentSessionBreakSec = 0;
+      for (const b of todayBreaks) {
+        if (b.attendanceId === activeSession.id) {
+          if (b.endTime) currentSessionBreakSec += b.durationSeconds;
+          else currentSessionBreakSec += Math.max(0, Math.floor((now - b.startTime) / 1000));
+        }
+      }
+      sessionWorkedSeconds = Math.max(0, elapsed - currentSessionBreakSec);
+    }
 
     const targetSeconds = targetDailyHours * 3600;
     const remainingSeconds = Math.max(0, targetSeconds - todaySeconds);
@@ -485,7 +932,9 @@ class AttendanceService {
 
     return {
       isCheckedIn: activeSession !== null,
+      isPaused,
       activeSession,
+      activeBreak,
       todaySeconds,
       todayHoursFormatted: this.formatSecondsToHoursMinutes(todaySeconds),
       weekSeconds,
@@ -493,35 +942,49 @@ class AttendanceService {
       remainingSeconds,
       remainingHoursFormatted: this.formatSecondsToHoursMinutes(remainingSeconds),
       todaySessionsCount: todaySessions.length,
+      todayBreakSeconds,
+      todayBreakHoursFormatted: this.formatSecondsToHoursMinutes(todayBreakSeconds),
+      sessionWorkedSeconds,
       lastCheckInFormatted,
       lastCheckInLocation,
     };
   }
 
   /**
-   * Get recent check-in/out activity items for timeline and activity feeds
+   * Get recent check-in/out & break activity items for timeline and activity feeds
    */
   public async getRecentActivities(
     employeeId: string,
-    limit: number = 5
+    limit: number = 6
   ): Promise<RecentActivity[]> {
     if (!employeeId) return [];
     await this.initAttendanceTable();
 
     let logs: AttendanceLog[] = [];
+    let breaks: AttendanceBreak[] = [];
 
     if (!this.db) {
       logs = Array.from(this.memoryLogs.values()).filter((l) => l.employeeId === employeeId);
+      breaks = Array.from(this.memoryBreaks.values()).filter((b) => b.employeeId === employeeId);
     } else {
       try {
-        const result = await this.db.execute(
-          `SELECT * FROM attendance_logs 
-           WHERE employee_id = ? 
-           ORDER BY check_in_time DESC LIMIT ?;`,
-          [employeeId, limit * 2]
-        );
-        if (result.rows && result.rows.length > 0) {
-          logs = (result.rows as Record<string, any>[]).map((row) => ({
+        const [logResult, breakResult] = await Promise.all([
+          this.db.execute(
+            `SELECT * FROM attendance_logs 
+             WHERE employee_id = ? 
+             ORDER BY check_in_time DESC LIMIT ?;`,
+            [employeeId, limit * 2]
+          ),
+          this.db.execute(
+            `SELECT * FROM attendance_breaks 
+             WHERE employee_id = ? 
+             ORDER BY start_time DESC LIMIT ?;`,
+            [employeeId, limit * 2]
+          ),
+        ]);
+
+        if (logResult.rows && logResult.rows.length > 0) {
+          logs = (logResult.rows as Record<string, any>[]).map((row) => ({
             id: String(row.id),
             employeeId: String(row.employee_id),
             date: String(row.date),
@@ -535,6 +998,20 @@ class AttendanceService {
             updatedAt: Number(row.updated_at || Date.now()),
           }));
         }
+
+        if (breakResult.rows && breakResult.rows.length > 0) {
+          breaks = (breakResult.rows as Record<string, any>[]).map((row) => ({
+            id: String(row.id),
+            attendanceId: String(row.attendance_id),
+            employeeId: String(row.employee_id),
+            date: String(row.date),
+            startTime: Number(row.start_time),
+            endTime: row.end_time ? Number(row.end_time) : null,
+            durationSeconds: Number(row.duration_seconds || 0),
+            createdAt: Number(row.created_at || Date.now()),
+            updatedAt: Number(row.updated_at || Date.now()),
+          }));
+        }
       } catch (error) {
         console.error('Failed to get recent activities from SQLite:', error);
       }
@@ -542,6 +1019,7 @@ class AttendanceService {
 
     const activities: RecentActivity[] = [];
 
+    // Add Check In & Check Out activities
     for (const log of logs) {
       if (log.checkOutTime) {
         activities.push({
@@ -561,6 +1039,37 @@ class AttendanceService {
         time: this.formatDayTime(log.checkInTime),
         timestamp: log.checkInTime,
       });
+    }
+
+    // Add Break Started (Paused) & Break Ended (Resumed) activities
+    for (const brk of breaks) {
+      if (brk.endTime) {
+        activities.push({
+          id: brk.id + '_resume',
+          type: 'resume',
+          title: 'Resumed Work',
+          location: `Break Duration: ${this.formatSecondsToHoursMinutes(brk.durationSeconds)}`,
+          time: this.formatDayTime(brk.endTime),
+          timestamp: brk.endTime,
+        });
+        activities.push({
+          id: brk.id + '_pause',
+          type: 'pause',
+          title: 'Break / Paused',
+          location: 'Break started',
+          time: this.formatDayTime(brk.startTime),
+          timestamp: brk.startTime,
+        });
+      } else {
+        activities.push({
+          id: brk.id + '_pause',
+          type: 'pause',
+          title: 'On Break (Paused)',
+          location: 'Break in progress',
+          time: this.formatDayTime(brk.startTime),
+          timestamp: brk.startTime,
+        });
+      }
     }
 
     // Sort by most recent timestamp

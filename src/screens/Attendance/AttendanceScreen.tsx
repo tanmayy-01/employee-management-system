@@ -24,6 +24,7 @@ export const AttendanceScreen: React.FC = () => {
     const { user, navigate, currentScreen } = useAuth();
     const { colors, isDark } = useTheme();
     const [isCheckedIn, setIsCheckedIn] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
     const [activities, setActivities] = useState<RecentActivity[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -42,6 +43,7 @@ export const AttendanceScreen: React.FC = () => {
             if (stats) {
                 setAttendanceStats(stats);
                 setIsCheckedIn(stats.isCheckedIn);
+                setIsPaused(Boolean(stats.isPaused));
             }
             if (recent) {
                 setActivities(recent);
@@ -82,6 +84,30 @@ export const AttendanceScreen: React.FC = () => {
         }
     };
 
+    const handlePause = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.pauseSession(targetId);
+            await loadAttendanceData();
+        } catch (error: any) {
+            Alert.alert('Pause Notice', error?.message || 'Could not pause session.');
+        }
+    };
+
+    const handleResume = async () => {
+        const targetId = user?.id || user?.email;
+        if (!targetId) return;
+
+        try {
+            await attendanceService.resumeSession(targetId);
+            await loadAttendanceData();
+        } catch (error: any) {
+            Alert.alert('Resume Notice', error?.message || 'Could not resume session.');
+        }
+    };
+
     const avatarUrl =
         user?.avatarUrl ||
         DEFAULT_AVATAR_URL
@@ -90,9 +116,7 @@ export const AttendanceScreen: React.FC = () => {
         navigate('AttendanceHistory');
     };
 
-    const initialSessionSeconds = attendanceStats?.activeSession
-        ? Math.max(0, Math.floor((Date.now() - attendanceStats.activeSession.checkInTime) / 1000))
-        : 0;
+    const initialSessionSeconds = attendanceStats?.sessionWorkedSeconds ?? 0;
 
     const todayHoursText = attendanceStats?.todayHoursFormatted || '0h 0m';
     const weekHoursText = attendanceStats?.weekHoursFormatted || '0h 0m';
@@ -148,11 +172,14 @@ export const AttendanceScreen: React.FC = () => {
                 <CheckInOutCard
                     variant="session"
                     isCheckedIn={isCheckedIn}
+                    isPaused={isPaused}
                     todayHours={todayHoursText}
                     weekHours={weekHoursText}
                     initialSessionSeconds={initialSessionSeconds}
                     onCheckIn={handleCheckIn}
                     onCheckOut={handleCheckOut}
+                    onPause={handlePause}
+                    onResume={handleResume}
                 />
 
                 {/* Attendance History Quick Link Banner Button */}
@@ -256,20 +283,22 @@ export const AttendanceScreen: React.FC = () => {
                         ) : (
                             activities.map((activity, index) => {
                                 const isLast = index === activities.length - 1;
+                                const dotColor =
+                                    activity.type === 'in'
+                                        ? '#10B981'
+                                        : activity.type === 'out'
+                                        ? '#EF4444'
+                                        : activity.type === 'pause'
+                                        ? '#F59E0B'
+                                        : '#3B82F6';
+
                                 return (
                                     <React.Fragment key={activity.id}>
                                         <View style={styles.activityItem}>
                                             <View
                                                 style={[
                                                     styles.activityDot,
-                                                    {
-                                                        backgroundColor:
-                                                            activity.type === 'in'
-                                                                ? '#10B981'
-                                                                : isDark
-                                                                    ? colors.inputBorder
-                                                                    : '#CBD5E1',
-                                                    },
+                                                    { backgroundColor: dotColor },
                                                 ]}
                                             />
                                             <View style={styles.activityInfo}>

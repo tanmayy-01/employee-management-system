@@ -113,9 +113,23 @@ export interface AttendanceLog {
   updatedAt: number;
 }
 
+export interface AttendanceBreak {
+  id: string;
+  attendanceId: string;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
+  startTime: number;
+  endTime: number | null;
+  durationSeconds: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AttendanceStats {
   isCheckedIn: boolean;
+  isPaused?: boolean;
   activeSession: AttendanceLog | null;
+  activeBreak?: AttendanceBreak | null;
   todaySeconds: number;
   todayHoursFormatted: string;
   weekSeconds: number;
@@ -123,6 +137,9 @@ export interface AttendanceStats {
   remainingSeconds: number;
   remainingHoursFormatted: string;
   todaySessionsCount: number;
+  todayBreakSeconds?: number;
+  todayBreakHoursFormatted?: string;
+  sessionWorkedSeconds?: number;
   lastCheckInFormatted?: string;
   lastCheckInLocation?: string;
 }
@@ -134,7 +151,7 @@ export interface AppNotification {
   description: string;
   time: string;
   timestamp: number;
-  type: 'checkin' | 'checkout' | 'meeting' | 'summary' | 'alert';
+  type: 'checkin' | 'checkout' | 'meeting' | 'summary' | 'alert' | 'break';
   isRead: boolean;
 }
 export type FilterType = 'monthly' | 'weekly' | 'today' | 'custom';

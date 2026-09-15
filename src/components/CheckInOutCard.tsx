@@ -13,8 +13,11 @@ import { DAYS_OF_WEEK, SHORT_MONTHS } from '../constants/attendance.constants';
 export interface CheckInOutCardProps {
   variant?: 'session' | 'full';
   isCheckedIn?: boolean;
-  onCheckIn?: () => void;
-  onCheckOut?: () => void;
+  isPaused?: boolean;
+  onCheckIn?: () => Promise<void> | void;
+  onCheckOut?: () => Promise<void> | void;
+  onPause?: () => Promise<void> | void;
+  onResume?: () => Promise<void> | void;
   initialSessionSeconds?: number;
   todayHours?: string;
   weekHours?: string;
@@ -24,37 +27,47 @@ export interface CheckInOutCardProps {
 export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
   variant = 'session',
   isCheckedIn = false,
+  isPaused = false,
   onCheckIn,
   onCheckOut,
+  onPause,
+  onResume,
   initialSessionSeconds = 0,
   todayHours = '0h 0m',
   weekHours = '32h 15m',
 }) => {
   const { colors, isDark } = useTheme();
   const [checkedIn, setCheckedIn] = useState(isCheckedIn);
+  const [paused, setPaused] = useState(isPaused);
   const [sessionSeconds, setSessionSeconds] = useState(initialSessionSeconds);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [loadingAction, setLoadingAction] = useState<'in' | 'out' | 'pause' | 'resume' | null>(null);
 
   useEffect(() => {
     setCheckedIn(isCheckedIn);
-    if (initialSessionSeconds > 0) {
-      setSessionSeconds(initialSessionSeconds);
-    }
-  }, [isCheckedIn, initialSessionSeconds]);
-
+  }, [isCheckedIn]);
 
   useEffect(() => {
-    if (!checkedIn) return;
+    setPaused(isPaused);
+  }, [isPaused]);
+
+  useEffect(() => {
+    if (initialSessionSeconds >= 0) {
+      setSessionSeconds(initialSessionSeconds);
+    }
+  }, [initialSessionSeconds]);
+
+  useEffect(() => {
+    if (!checkedIn || paused) return;
 
     const interval = setInterval(() => {
-      setSessionSeconds((prev) => prev + 1);
+      setSessionSeconds(prev => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [checkedIn]);
+  }, [checkedIn, paused]);
 
+  // Clock time update
   useEffect(() => {
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
@@ -67,47 +80,77 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''
-      }${seconds}`;
+    return `${hours < 10 ? '0' : ''}${hours}:${
+      minutes < 10 ? '0' : ''
+    }${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
   const formatClockTime = (date: Date) => {
     const hours = date.getHours();
     const minutes = date.getMinutes();
-    return `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}`;
+    return `${hours < 10 ? '0' : ''}${hours}:${
+      minutes < 10 ? '0' : ''
+    }${minutes}`;
   };
 
   const formatDate = (date: Date) => {
     const days = DAYS_OF_WEEK;
     const months = SHORT_MONTHS;
-    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+    return `${days[date.getDay()]}, ${
+      months[date.getMonth()]
+    } ${date.getDate()}`;
   };
 
   const handleToggle = async (action: 'in' | 'out') => {
-    setIsLoading(true);
+    setLoadingAction(action);
     try {
       if (action === 'in') {
         if (onCheckIn) await onCheckIn();
         setCheckedIn(true);
+        setPaused(false);
       } else {
         if (onCheckOut) await onCheckOut();
         setCheckedIn(false);
+        setPaused(false);
         setSessionSeconds(0);
       }
     } catch (error) {
       console.warn('Check in/out toggle error:', error);
     } finally {
-      setIsLoading(false);
+      setLoadingAction(null);
     }
   };
 
+  const handlePause = async () => {
+    setLoadingAction('pause');
+    try {
+      if (onPause) await onPause();
+      setPaused(true);
+    } catch (error) {
+      console.warn('Pause error:', error);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleResume = async () => {
+    setLoadingAction('resume');
+    try {
+      if (onResume) await onResume();
+      setPaused(false);
+    } catch (error) {
+      console.warn('Resume error:', error);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   if (variant === 'session' && checkedIn) {
     return (
       <View
         style={[
           styles.card,
-          styles.cardCheckedIn,
+          paused ? styles.cardPaused : styles.cardCheckedIn,
           {
             backgroundColor: colors.card,
             borderColor: colors.cardBorder,
@@ -117,41 +160,153 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
       >
         {/* Header Row */}
         <View style={styles.sessionHeaderRow}>
-          <Text style={[styles.sessionTitle, { color: colors.textPrimary }]}>Current Status</Text>
-          <View style={[styles.checkedInBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#E6F9F0' }]}>
-            <View style={styles.greenDot} />
-            <Text style={styles.checkedInBadgeText}>Checked In</Text>
+          <Text style={[styles.sessionTitle, { color: colors.textPrimary }]}>
+            Current Status
+          </Text>
+          <View
+            style={[
+              paused ? styles.pausedBadge : styles.checkedInBadge,
+              {
+                backgroundColor: paused
+                  ? isDark
+                    ? 'rgba(245, 158, 11, 0.18)'
+                    : '#FEF3C7'
+                  : isDark
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : '#E6F9F0',
+              },
+            ]}
+          >
+            <View style={paused ? styles.amberDot : styles.greenDot} />
+            <Text
+              style={[
+                styles.badgeText,
+                { color: paused ? (isDark ? '#FBBF24' : '#D97706') : '#10B981' },
+              ]}
+            >
+              {paused ? 'On Break' : 'Checked In'}
+            </Text>
           </View>
         </View>
 
         {/* Center Clock / Duration */}
         <View style={styles.sessionBody}>
-          <Text style={[styles.sessionSubtitle, { color: colors.textSecondary }]}>Session Duration</Text>
-          <Text style={[styles.sessionDuration, { color: colors.textPrimary }]}>
+          <Text
+            style={[
+              styles.sessionSubtitle,
+              { color: paused ? (isDark ? '#FBBF24' : '#D97706') : colors.textSecondary },
+            ]}
+          >
+            {paused ? 'Session Paused • On Break' : 'Session Duration'}
+          </Text>
+          <Text
+            style={[
+              styles.sessionDuration,
+              {
+                color: paused
+                  ? isDark
+                    ? '#FBBF24'
+                    : '#B45309'
+                  : colors.textPrimary,
+              },
+            ]}
+          >
             {formatSessionTime(sessionSeconds)}
           </Text>
         </View>
 
-        {/* Action Button */}
-        <TouchableOpacity
-          style={[
-            styles.checkOutButton,
-            { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#F3F4F6' },
-          ]}
-          onPress={() => handleToggle('out')}
-          disabled={isLoading}
-          activeOpacity={0.75}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={colors.error} size="small" />
+        {/* Action Buttons Row: Pause / Resume & Check Out */}
+        <View style={styles.sessionActionsRow}>
+          {paused ? (
+            <TouchableOpacity
+              style={[
+                styles.actionButtonHalf,
+                styles.resumeButton,
+                { backgroundColor: isDark ? '#10B981' : '#059669' },
+              ]}
+              onPress={handleResume}
+              disabled={loadingAction !== null}
+              activeOpacity={0.8}
+            >
+              {loadingAction === 'resume' ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Ionicons name="play" size={16} color="#FFFFFF" style={styles.buttonIcon} />
+                  <Text style={styles.resumeButtonText}>Resume</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           ) : (
-            <Text style={[styles.checkOutButtonText, { color: colors.error }]}>Check Out</Text>
+            <TouchableOpacity
+              style={[
+                styles.actionButtonHalf,
+                styles.pauseButton,
+                {
+                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB',
+                  borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#FDE68A',
+                },
+              ]}
+              onPress={handlePause}
+              disabled={loadingAction !== null}
+              activeOpacity={0.8}
+            >
+              {loadingAction === 'pause' ? (
+                <ActivityIndicator color={isDark ? '#FBBF24' : '#D97706'} size="small" />
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Ionicons
+                    name="pause"
+                    size={16}
+                    color={isDark ? '#FBBF24' : '#D97706'}
+                    style={styles.buttonIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.pauseButtonText,
+                      { color: isDark ? '#FBBF24' : '#D97706' },
+                    ]}
+                  >
+                    Pause
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButtonHalf,
+              styles.checkOutButtonHalf,
+              {
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEE2E2',
+                borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECACA',
+              },
+            ]}
+            onPress={() => handleToggle('out')}
+            disabled={loadingAction !== null}
+            activeOpacity={0.8}
+          >
+            {loadingAction === 'out' ? (
+              <ActivityIndicator color={colors.error} size="small" />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Ionicons
+                  name="log-out-outline"
+                  size={16}
+                  color={colors.error}
+                  style={styles.buttonIcon}
+                />
+                <Text style={[styles.checkOutButtonText, { color: colors.error }]}>
+                  Check Out
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
-
 
   return (
     <View
@@ -160,108 +315,219 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
         {
           backgroundColor: colors.card,
           borderColor: colors.cardBorder,
-          borderLeftColor: checkedIn ? '#10B981' : isDark ? '#4B5563' : '#94A3B8',
+          borderLeftColor: checkedIn
+            ? paused
+              ? '#F59E0B'
+              : '#10B981'
+            : isDark
+            ? '#4B5563'
+            : '#94A3B8',
           shadowColor: colors.shadowColor,
         },
       ]}
     >
       {/* Top Status Pill */}
       <View style={styles.fullStatusRow}>
-        <Text style={[styles.statusSectionLabel, { color: isDark ? colors.textTertiary : '#4B5563' }]}>
+        <Text
+          style={[
+            styles.statusSectionLabel,
+            { color: isDark ? colors.textTertiary : '#4B5563' },
+          ]}
+        >
           CURRENT STATUS
         </Text>
         <View
           style={
             checkedIn
-              ? [styles.checkedInBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#E6F9F0' }]
-              : [styles.readyBadge, { backgroundColor: isDark ? colors.inputBackground : '#F1F5F9' }]
+              ? paused
+                ? [
+                    styles.pausedBadge,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(245, 158, 11, 0.18)'
+                        : '#FEF3C7',
+                    },
+                  ]
+                : [
+                    styles.checkedInBadge,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : '#E6F9F0',
+                    },
+                  ]
+              : [
+                  styles.readyBadge,
+                  {
+                    backgroundColor: isDark
+                      ? colors.inputBackground
+                      : '#F1F5F9',
+                  },
+                ]
           }
         >
-          <View style={checkedIn ? styles.greenDot : styles.grayDot} />
+          <View
+            style={
+              checkedIn
+                ? paused
+                  ? styles.amberDot
+                  : styles.greenDot
+                : styles.grayDot
+            }
+          />
           <Text
             style={
               checkedIn
-                ? styles.checkedInBadgeText
-                : [styles.readyBadgeText, { color: isDark ? colors.textSecondary : '#475569' }]
+                ? [
+                    styles.badgeText,
+                    {
+                      color: paused
+                        ? isDark
+                          ? '#FBBF24'
+                          : '#D97706'
+                        : '#10B981',
+                    },
+                  ]
+                : [
+                    styles.readyBadgeText,
+                    { color: isDark ? colors.textSecondary : '#475569' },
+                  ]
             }
           >
-            {checkedIn ? 'Checked In' : 'Ready to Check In'}
+            {checkedIn
+              ? paused
+                ? 'On Break (Paused)'
+                : 'Checked In'
+              : 'Ready to Check In'}
           </Text>
         </View>
       </View>
 
       {/* Big Time Display */}
       <View style={styles.clockContainer}>
-        <Text style={[styles.bigClockText, { color: colors.textPrimary }]}>{formatClockTime(currentTime)}</Text>
-        <Text style={[styles.clockDateText, { color: colors.textSecondary }]}>{formatDate(currentTime)}</Text>
+        <Text style={[styles.bigClockText, { color: colors.textPrimary }]}>
+          {formatClockTime(currentTime)}
+        </Text>
+        <Text style={[styles.clockDateText, { color: colors.textSecondary }]}>
+          {formatDate(currentTime)}
+        </Text>
       </View>
 
       {/* Buttons */}
       <View style={styles.fullButtonsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.primaryCheckInButton,
-            { backgroundColor: colors.primary },
-            checkedIn && [styles.buttonMuted, { backgroundColor: isDark ? colors.inputBackground : '#F1F3FB' }],
-          ]}
-          onPress={() => handleToggle('in')}
-          disabled={checkedIn || isLoading}
-          activeOpacity={0.85}
-        >
-          {isLoading && !checkedIn ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <View style={styles.buttonContent}>
-              <Ionicons
-                name="log-in-outline"
-                size={18}
-                color={checkedIn ? (isDark ? colors.textTertiary : '#94A3B8') : '#FFFFFF'}
-                style={styles.buttonIcon}
-              />
-              <Text
+        {checkedIn ? (
+          <View style={styles.fullActionButtonsRow}>
+            {paused ? (
+              <TouchableOpacity
                 style={[
-                  styles.primaryCheckInText,
-                  checkedIn && [styles.buttonTextMuted, { color: isDark ? colors.textTertiary : '#94A3B8' }],
+                  styles.fullActionBtn,
+                  { backgroundColor: isDark ? '#10B981' : '#059669' },
                 ]}
+                onPress={handleResume}
+                disabled={loadingAction !== null}
+                activeOpacity={0.85}
               >
-                Check In
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+                {loadingAction === 'resume' ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <View style={styles.buttonContent}>
+                    <Ionicons name="play" size={17} color="#FFFFFF" style={styles.buttonIcon} />
+                    <Text style={styles.primaryCheckInText}>Resume</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.fullActionBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.18)' : '#FEF3C7',
+                    borderWidth: 1,
+                    borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#FDE68A',
+                  },
+                ]}
+                onPress={handlePause}
+                disabled={loadingAction !== null}
+                activeOpacity={0.85}
+              >
+                {loadingAction === 'pause' ? (
+                  <ActivityIndicator color={isDark ? '#FBBF24' : '#D97706'} size="small" />
+                ) : (
+                  <View style={styles.buttonContent}>
+                    <Ionicons
+                      name="pause"
+                      size={17}
+                      color={isDark ? '#FBBF24' : '#D97706'}
+                      style={styles.buttonIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.primaryCheckInText,
+                        { color: isDark ? '#FBBF24' : '#D97706' },
+                      ]}
+                    >
+                      Pause
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
 
-        <TouchableOpacity
-          style={[
-            styles.primaryCheckOutButton,
-            { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EEF2FF' },
-            !checkedIn && [styles.buttonMuted, { backgroundColor: isDark ? colors.inputBackground : '#F1F3FB' }],
-          ]}
-          onPress={() => handleToggle('out')}
-          disabled={!checkedIn || isLoading}
-          activeOpacity={0.85}
-        >
-          {isLoading && checkedIn ? (
-            <ActivityIndicator color={colors.error} size="small" />
-          ) : (
-            <View style={styles.buttonContent}>
-              <Ionicons
-                name="log-out-outline"
-                size={18}
-                color={!checkedIn ? (isDark ? colors.textTertiary : '#94A3B8') : colors.error}
-                style={styles.buttonIcon}
-              />
-              <Text
-                style={[
-                  styles.primaryCheckOutText,
-                  { color: colors.primary },
-                  !checkedIn && [styles.buttonTextMuted, { color: isDark ? colors.textTertiary : '#94A3B8' }],
-                ]}
-              >
-                Check Out
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.fullActionBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECACA',
+                },
+              ]}
+              onPress={() => handleToggle('out')}
+              disabled={loadingAction !== null}
+              activeOpacity={0.85}
+            >
+              {loadingAction === 'out' ? (
+                <ActivityIndicator color={colors.error} size="small" />
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Ionicons
+                    name="log-out-outline"
+                    size={17}
+                    color={colors.error}
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={[styles.primaryCheckOutText, { color: colors.error }]}>
+                    Check Out
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.primaryCheckInButton,
+              { backgroundColor: colors.primary },
+            ]}
+            onPress={() => handleToggle('in')}
+            disabled={loadingAction !== null}
+            activeOpacity={0.85}
+          >
+            {loadingAction === 'in' ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Ionicons
+                  name="log-in-outline"
+                  size={18}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.primaryCheckInText}>Check In</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Footer Stats Row */}
@@ -273,8 +539,12 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
       />
       <View style={styles.footerStatsRow}>
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{todayHours}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Today</Text>
+          <Text style={[styles.statNumber, { color: colors.textPrimary }]}>
+            {todayHours}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            Today
+          </Text>
         </View>
         <View
           style={[
@@ -283,8 +553,12 @@ export const CheckInOutCard: React.FC<CheckInOutCardProps> = ({
           ]}
         />
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, { color: colors.textPrimary }]}>{weekHours}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>This Week</Text>
+          <Text style={[styles.statNumber, { color: colors.textPrimary }]}>
+            {weekHours}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+            This Week
+          </Text>
         </View>
       </View>
     </View>
@@ -310,6 +584,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#10B981',
   },
+  cardPaused: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
   sessionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -329,17 +607,31 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  pausedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#10B981',
     marginRight: 6,
   },
-  checkedInBadgeText: {
+  amberDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#F59E0B',
+    marginRight: 6,
+  },
+  badgeText: {
     fontSize: 11.5,
-    fontWeight: '600',
-    color: '#10B981',
+    fontWeight: '700',
   },
   readyBadge: {
     flexDirection: 'row',
@@ -364,44 +656,60 @@ const styles = StyleSheet.create({
   sessionBody: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     marginBottom: 14,
   },
   sessionSubtitle: {
     fontSize: 12,
     color: '#6B7280',
     marginBottom: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   sessionDuration: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800',
     color: '#111827',
     letterSpacing: 0.5,
   },
-  checkOutButton: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
+  sessionActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 6,
+  },
+  actionButtonHalf: {
+    flex: 1,
+    borderRadius: 12,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pauseButton: {
+    borderWidth: 1,
+  },
+  pauseButtonText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  resumeButton: {
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  resumeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  checkOutButtonHalf: {
+    borderWidth: 1,
   },
   checkOutButtonText: {
-    color: '#DC2626',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  checkInButton: {
-    backgroundColor: '#004AC6',
-    borderRadius: 10,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkInButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13.5,
+    fontWeight: '700',
   },
   buttonContent: {
     flexDirection: 'row',
@@ -461,36 +769,32 @@ const styles = StyleSheet.create({
   fullButtonsContainer: {
     marginBottom: 18,
   },
+  fullActionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  fullActionBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   primaryCheckInButton: {
-    backgroundColor: '#004AC6',
-    borderRadius: 10,
+    borderRadius: 12,
     height: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
   },
   primaryCheckInText: {
     color: '#FFFFFF',
     fontSize: 14.5,
-    fontWeight: '600',
-  },
-  primaryCheckOutButton: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 10,
-    height: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontWeight: '700',
   },
   primaryCheckOutText: {
-    color: '#004AC6',
     fontSize: 14.5,
-    fontWeight: '600',
-  },
-  buttonMuted: {
-    backgroundColor: '#F1F3FB',
-  },
-  buttonTextMuted: {
-    color: '#94A3B8',
+    fontWeight: '700',
   },
   footerDivider: {
     height: 1,
